@@ -1,0 +1,371 @@
+.computer-root {
+	position: absolute;
+	left: 0;
+	top: 0;
+	overflow: hidden;
+	font-family: Tahoma, Arial, sans-serif;
+	font-size: 13px;
+	color: #111;
+	background-color: #1d617c;
+	background-image: url("/Resources/desktopBackground.png");
+	background-size: cover;
+	background-position: center;
+	pointer-events: all;
+	cursor: default;
+}
+
+.desktop {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 32px;
+	overflow: hidden;
+}
+
+.shortcut-grid {
+	position: absolute;
+	left: 14px;
+	top: 12px;
+	width: 310px;
+	display: flex;
+	flex-direction: column;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.desktop-shortcut {
+	width: 82px;
+	min-height: 76px;
+	align-items: center;
+	justify-content: flex-start;
+	flex-direction: column;
+	padding: 4px;
+	border: 1px solid transparent;
+	border-radius: 2px;
+	color: white;
+	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+}
+
+.desktop-shortcut:hover {
+	background-color: rgba(49, 106, 197, 0.42);
+	border-color: rgba(255, 255, 255, 0.45);
+}
+
+.desktop-icon {
+	width: 38px;
+	height: 38px;
+	margin-bottom: 4px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid rgba(255, 255, 255, 0.7);
+	border-radius: 4px;
+	background: linear-gradient(180deg, #ffffff, #7db7e8 52%, #2256b1);
+	color: #083b7a;
+	font-size: 22px;
+	font-weight: 700;
+	text-shadow: none;
+}
+
+.desktop-shortcut label {
+	width: 78px;
+	text-align: center;
+	font-size: 12px;
+	line-height: 14px;
+}
+
+.xp-window {
+	position: absolute;
+	flex-direction: column;
+	border: 3px solid #1c4fa1;
+	border-top-color: #2e7df0;
+	border-left-color: #2e7df0;
+	background-color: #ece9d8;
+	box-shadow: 3px 4px 9px rgba(0, 0, 0, 0.45);
+}
+
+.xp-window.focused {
+	border-color: #0c3d96;
+	border-top-color: #2f8cff;
+	border-left-color: #2f8cff;
+}
+
+.title-bar {
+	height: 29px;
+	flex-shrink: 0;
+	align-items: center;
+	justify-content: space-between;
+	padding: 2px 3px 2px 8px;
+	background: linear-gradient(90deg, #0d3a95, #2f87ff 58%, #54a3ff);
+	color: white;
+	font-weight: 700;
+	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.55);
+}
+
+.title-text {
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+
+.title-text label {
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+
+.window-controls {
+	align-items: center;
+	gap: 3px;
+}
+
+.window-controls button {
+	width: 22px;
+	height: 21px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid #ffffff;
+	border-radius: 3px;
+	background: linear-gradient(180deg, #7bb6ff, #185bc2 58%, #0d3c91);
+	color: white;
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.window-controls button.close {
+	background: linear-gradient(180deg, #ffb29d, #d84b28 58%, #9f1e12);
+}
+
+.app-host {
+	position: relative;
+	flex-grow: 1;
+	margin: 2px;
+	overflow: hidden;
+	background-color: #fff;
+	border: 1px solid #7f9db9;
+}
+
+.taskbar {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 32px;
+	align-items: center;
+	background: linear-gradient(180deg, #2c7df0 0%, #0b4eb9 48%, #0a3d97 100%);
+	color: white;
+}
+
+.start-button {
+	height: 30px;
+	min-width: 92px;
+	margin: 1px 8px 1px 2px;
+	padding: 0 13px 0 10px;
+	align-items: center;
+	gap: 7px;
+	border: 1px solid #2b8b32;
+	border-radius: 0 9px 9px 0;
+	background: linear-gradient(180deg, #7fd662, #2e8a2b 55%, #1f6f1e);
+	color: white;
+	font-weight: 700;
+	font-style: italic;
+	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.65);
+}
+
+.start-button span {
+	width: 20px;
+	height: 20px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 3px;
+	background-color: rgba(255, 255, 255, 0.24);
+	font-style: normal;
+}
+
+.start-button.active {
+	background: linear-gradient(180deg, #5caf46, #206f20);
+}
+
+.task-list {
+	flex-grow: 1;
+	height: 100%;
+	align-items: center;
+	gap: 4px;
+	overflow: hidden;
+}
+
+.task-button {
+	height: 26px;
+	min-width: 120px;
+	max-width: 190px;
+	padding: 0 8px;
+	align-items: center;
+	gap: 6px;
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	border-radius: 2px;
+	background: linear-gradient(180deg, #4d96f2, #1b62cb);
+	color: white;
+}
+
+.task-button.active {
+	background: linear-gradient(180deg, #194c9d, #0b3478);
+}
+
+.task-button label {
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+
+.tray {
+	width: 86px;
+	height: 100%;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(180deg, #20a8e9, #0d73bc);
+	border-left: 1px solid rgba(255, 255, 255, 0.45);
+	font-size: 12px;
+}
+
+.start-menu {
+	position: absolute;
+	left: 0;
+	bottom: 32px;
+	width: 330px;
+	height: 430px;
+	z-index: 10000;
+	flex-direction: column;
+	background: #f4f0e4;
+	border: 2px solid #1a55bb;
+	box-shadow: 4px 5px 12px rgba(0, 0, 0, 0.45);
+}
+
+.start-header {
+	height: 70px;
+	align-items: center;
+	gap: 12px;
+	padding: 10px;
+	background: linear-gradient(90deg, #0b3f9f, #3a8dff);
+	color: white;
+	font-size: 17px;
+	font-weight: 700;
+}
+
+.user-tile {
+	width: 42px;
+	height: 42px;
+	align-items: center;
+	justify-content: center;
+	border: 2px solid rgba(255, 255, 255, 0.82);
+	border-radius: 5px;
+	background: linear-gradient(180deg, #ffffff, #69afe7);
+	color: #15498f;
+	font-size: 26px;
+}
+
+.start-apps {
+	flex-grow: 1;
+	flex-direction: column;
+	padding: 8px;
+	gap: 3px;
+}
+
+.start-app {
+	height: 34px;
+	align-items: center;
+	gap: 10px;
+	padding: 0 8px;
+	border-radius: 2px;
+}
+
+.start-app:hover {
+	background-color: #316ac5;
+	color: white;
+}
+
+.start-app span {
+	width: 22px;
+	text-align: center;
+	font-weight: 700;
+}
+
+.start-power {
+	height: 52px;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 0 10px;
+	background: linear-gradient(90deg, #d6e6ff, #88afe8);
+	border-top: 1px solid #6a8fc7;
+}
+
+.start-power button {
+	height: 28px;
+	padding: 0 12px;
+	border: 1px solid #7c7c7c;
+	border-radius: 3px;
+	background: linear-gradient(180deg, #ffffff, #d8d2bd);
+	color: #111;
+}
+
+.sleep-overlay {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	align-items: center;
+	justify-content: center;
+	background: #05070a;
+	color: white;
+	z-index: 20000;
+}
+
+.sleep-card {
+	width: 310px;
+	height: 170px;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 9px;
+	border: 1px solid #2e5a8e;
+	background: linear-gradient(180deg, #10213d, #07111f);
+}
+
+.sleep-logo {
+	width: 46px;
+	height: 46px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 5px;
+	background: linear-gradient(180deg, #ffffff, #69afe7);
+	color: #15498f;
+	font-size: 30px;
+	font-weight: 700;
+}
+
+.sleep-card label {
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.sleep-card span {
+	color: #b8d7ff;
+}
+
+.screen-saver {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	z-index: 30000;
+	background-color: #000000;
+	overflow: hidden;
+	pointer-events: all;
+}
+
+.screen-saver-logo {
+	position: absolute;
+	object-fit: contain;
+}

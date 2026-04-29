@@ -1,0 +1,9 @@
+build/
+.dotnet-home/
+.nuget/
+Code/**/bin/
+Code/**/obj/
+Editor/**/bin/
+Editor/**/obj/
+UnitTests/**/bin/
+UnitTests/**/obj/

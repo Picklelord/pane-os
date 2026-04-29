@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\Code\InteractiveComputer\ComputerState.cs" Link="PaneOS\ComputerState.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\RidgeBrowserPolicy.cs" Link="PaneOS\RidgeBrowserPolicy.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\ScreenSaverSimulator.cs" Link="PaneOS\ScreenSaverSimulator.cs" />
+  </ItemGroup>
+</Project>

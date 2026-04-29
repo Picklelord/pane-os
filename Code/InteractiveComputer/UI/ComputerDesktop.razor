@@ -1,0 +1,227 @@
+@namespace PaneOS.InteractiveComputer
+@using System
+@using PaneOS.InteractiveComputer
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+
+@if ( Computer is null || Runtime is null || (VisibleOnlyWhenInteracting && !Computer.IsPlayerInteracting) )
+{
+	return;
+}
+
+<root class="computer-root @(Runtime.State.IsSleeping ? "is-sleeping" : "")"
+	  style="width: @(Runtime.State.ResolutionX)px; height: @(Runtime.State.ResolutionY)px;">
+	<div class="desktop" onclick="@CloseStartMenu">
+		@if ( Runtime.State.IsSleeping )
+		{
+			<div class="sleep-overlay" onclick="@Wake">
+				<div class="sleep-card">
+					<div class="sleep-logo">e</div>
+					<label>Computer is sleeping</label>
+					<span>Click to wake</span>
+				</div>
+			</div>
+		}
+		else
+		{
+			<div class="shortcut-grid">
+				@foreach ( var app in Runtime.Apps )
+				{
+					<div class="desktop-shortcut" onclick="@(() => OpenApp( app.Id ))">
+						<div class="desktop-icon">@app.Icon</div>
+						<label>@app.Title</label>
+					</div>
+				}
+			</div>
+
+			@foreach ( var app in Runtime.OpenApps )
+			{
+				if ( app.State.IsMinimized )
+					continue;
+
+				<div class="xp-window @(Runtime.FocusedApp == app ? "focused" : "")"
+					 style="left: @(app.State.X)px; top: @(app.State.Y)px; width: @(app.State.Width)px; height: @(app.State.Height)px; z-index: @(app.State.ZIndex);"
+					 onclick="@(() => Focus( app.State.InstanceId ))">
+					<div class="title-bar">
+						<div class="title-text">
+							<span>@app.State.Icon</span>
+							<label>@app.State.Title</label>
+						</div>
+						<div class="window-controls">
+							@if ( app.Session.CanMinimize )
+							{
+								<button onclick="@(() => Minimize( app.State.InstanceId ))">_</button>
+							}
+							@if ( app.Session.CanClose )
+							{
+								<button class="close" onclick="@(() => Close( app.State.InstanceId ))">x</button>
+							}
+						</div>
+					</div>
+					<ComputerAppHost Instance=@app />
+				</div>
+			}
+		}
+	</div>
+
+	@if ( Runtime.State.StartMenuOpen && !Runtime.State.IsSleeping )
+	{
+		<div class="start-menu">
+			<div class="start-header">
+				<div class="user-tile">e</div>
+				<label>@Computer.ComputerId</label>
+			</div>
+			<div class="start-apps">
+				@foreach ( var app in Runtime.Apps )
+				{
+					<div class="start-app" onclick="@(() => OpenApp( app.Id ))">
+						<span>@app.Icon</span>
+						<label>@app.Title</label>
+					</div>
+				}
+			</div>
+			<div class="start-power">
+				<button onclick="@Restart">Restart</button>
+				<button onclick="@Sleep">Sleep</button>
+			</div>
+		</div>
+	}
+
+	<div class="taskbar">
+		<button class="start-button @(Runtime.State.StartMenuOpen ? "active" : "")" onclick="@ToggleStart">
+			<span>e</span>
+			<label>start</label>
+		</button>
+		<div class="task-list">
+			@foreach ( var app in Runtime.OpenApps )
+			{
+				<button class="task-button @(Runtime.FocusedApp == app && !app.State.IsMinimized ? "active" : "")"
+						onclick="@(() => ToggleTaskbarApp( app.State.InstanceId ))">
+					<span>@app.State.Icon</span>
+					<label>@app.State.Title</label>
+				</button>
+			}
+		</div>
+		<div class="tray">
+			<label>@System.DateTime.Now.ToString( "h:mm tt" )</label>
+		</div>
+	</div>
+
+	@if ( Runtime.IsScreenSaverActive && !Computer.IsPlayerInteracting )
+	{
+		var saver = Runtime.State.ScreenSaver;
+		<div class="screen-saver" onclick="@ScreenSaverActivity">
+			<img class="screen-saver-logo"
+				 src="/Assets/PaneOS.png"
+				 style="left: @(saver.LogoX)px; top: @(saver.LogoY)px; width: @(saver.LogoWidth)px; height: @(saver.LogoHeight)px;" />
+		</div>
+	}
+</root>
+
+@code
+{
+	[Property] public InteractiveComputerComponent? Computer { get; set; }
+	[Property] public bool VisibleOnlyWhenInteracting { get; set; } = true;
+
+	private ComputerRuntime? Runtime => Computer?.Runtime;
+	private int lastRenderHash;
+
+	protected override int BuildHash()
+	{
+		unchecked
+		{
+			var hash = 17;
+			hash = hash * 31 + ((Computer?.IsPlayerInteracting ?? false) ? 1 : 0);
+			hash = hash * 31 + (Runtime?.Version ?? 0);
+			hash = hash * 31 + ((Runtime?.State.ScreenSaver.IsActive ?? false) ? 1 : 0);
+			hash = hash * 31 + System.DateTime.Now.Minute;
+			return hash;
+		}
+	}
+
+	protected override void OnUpdate()
+	{
+		var hash = BuildHash();
+		if ( hash == lastRenderHash )
+			return;
+
+		lastRenderHash = hash;
+		StateHasChanged();
+	}
+
+	private void OpenApp( string appId )
+	{
+		Runtime?.OpenApp( appId );
+		StateHasChanged();
+	}
+
+	private void Focus( string instanceId )
+	{
+		Runtime?.Focus( instanceId );
+		StateHasChanged();
+	}
+
+	private void Minimize( string instanceId )
+	{
+		Runtime?.Minimize( instanceId );
+		StateHasChanged();
+	}
+
+	private void Close( string instanceId )
+	{
+		Runtime?.Close( instanceId );
+		StateHasChanged();
+	}
+
+	private void ToggleTaskbarApp( string instanceId )
+	{
+		Runtime?.ToggleTaskbarApp( instanceId );
+		StateHasChanged();
+	}
+
+	private void ToggleStart()
+	{
+		Runtime?.ToggleStartMenu();
+		StateHasChanged();
+	}
+
+	private void CloseStartMenu()
+	{
+		if ( Runtime is null )
+			return;
+
+		Runtime.NotifyUserActivity();
+
+		if ( !Runtime.State.StartMenuOpen )
+			return;
+
+		Runtime.State.StartMenuOpen = false;
+		Runtime.MarkChanged();
+		StateHasChanged();
+	}
+
+	private void Sleep()
+	{
+		Runtime?.Sleep();
+		StateHasChanged();
+	}
+
+	private void Wake()
+	{
+		Runtime?.Wake();
+		StateHasChanged();
+	}
+
+	private void Restart()
+	{
+		Runtime?.Restart();
+		StateHasChanged();
+	}
+
+	private void ScreenSaverActivity()
+	{
+		Runtime?.NotifyUserActivity();
+		StateHasChanged();
+	}
+}
