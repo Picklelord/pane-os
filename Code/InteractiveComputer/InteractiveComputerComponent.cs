@@ -9,6 +9,7 @@ namespace PaneOS.InteractiveComputer;
 public sealed class InteractiveComputerComponent : Component
 {
 	private static readonly Dictionary<string, ComputerState> statesByComputerId = new();
+	private static readonly Dictionary<GameObject, InteractiveComputerComponent> activeComputersByPlayer = new();
 
 	[Property] public string ComputerId { get; set; } = "computer-01";
 	[Property] public int ResolutionX { get; set; } = 1024;
@@ -26,6 +27,14 @@ public sealed class InteractiveComputerComponent : Component
 	public bool IsPlayerInteracting { get; private set; }
 	public GameObject? InteractingPlayer { get; private set; }
 
+	public static InteractiveComputerComponent? GetActiveComputerForPlayer( GameObject? player )
+	{
+		if ( player is null )
+			return null;
+
+		return activeComputersByPlayer.GetValueOrDefault( player );
+	}
+
 	protected override void OnAwake()
 	{
 		var state = LoadState();
@@ -42,8 +51,15 @@ public sealed class InteractiveComputerComponent : Component
 
 	public void BeginInteraction( GameObject? player )
 	{
+		if ( player is not null && activeComputersByPlayer.TryGetValue( player, out var activeComputer ) && activeComputer != this )
+			activeComputer.EndInteraction();
+
 		InteractingPlayer = player;
 		IsPlayerInteracting = true;
+
+		if ( player is not null )
+			activeComputersByPlayer[player] = this;
+
 		Runtime.DisableScreenSaverWhileInteracting();
 		Runtime.Wake();
 		Runtime.MarkChanged();
@@ -51,6 +67,13 @@ public sealed class InteractiveComputerComponent : Component
 
 	public void EndInteraction()
 	{
+		if ( InteractingPlayer is not null &&
+			activeComputersByPlayer.TryGetValue( InteractingPlayer, out var activeComputer ) &&
+			activeComputer == this )
+		{
+			activeComputersByPlayer.Remove( InteractingPlayer );
+		}
+
 		IsPlayerInteracting = false;
 		InteractingPlayer = null;
 		Runtime.ResetScreenSaverIdle();

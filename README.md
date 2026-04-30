@@ -40,6 +40,7 @@ After copying, reload or recompile the project in the s&box editor. The PaneOS c
 - `InteractiveComputerComponent` owns one computer's state and runtime.
 - `ComputerDesktop` renders the PaneOS Razor/Panel desktop.
 - `ComputerUseRaycaster` is an optional player-side use-key helper.
+- `ComputerInteractionPlayerLock` is an optional player-side helper that disables your movement/look components while the desktop is in use.
 - `PaneOSMonitorSetup` and `PaneOSRtScreenBridge` create the generated screen, camera, and render target used by monitor or TV setups.
 - Built-in apps:
   - `system.about`
@@ -89,6 +90,7 @@ Or use the included helper:
 2. Assign the player's camera to `PlayerCamera`.
 3. Set `UseButton` to your input action, usually `use`.
 4. Set `UseDistance` to the desired interaction range.
+5. Optionally add `ComputerInteractionPlayerLock` to the same player and assign your movement and look components.
 
 While interacting, the computer wakes from sleep, the screensaver is dismissed, idle time resets, and pressing `escape` ends interaction.
 
@@ -235,5 +237,10 @@ RT monitor is blank:
 - Verify the generated `PaneOS Screen` exists.
 - Verify `PaneOS RT Camera` frames the generated screen.
 - Assign the generated camera/render target/`ScreenId` to your RT screen component in the editor.
+
+PaneOSRtScreenBridge shows an `OnValidate` warning:
+
+- This usually means the bridge validated before the computer runtime had fully awoken in the editor.
+- PaneOS now falls back to the component resolution during validation, then finishes normal setup at runtime.
 
 PaneOS uses s&box Panel/Razor UI. It does not use Qt.
