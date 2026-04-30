@@ -57,13 +57,6 @@ public sealed class SettingsPanel : Panel
 	private void BuildHardwareSection()
 	{
 		var section = CreateSection( "Hardware" );
-		CreateSettingRow( section, $"CPU lag simulation: {(context.Runtime.State.Hardware.SimulateCpuInputDelayWhenMaxed ? "Enabled" : "Disabled")}",
-			("Toggle", () =>
-			{
-				context.Runtime.State.Hardware.SimulateCpuInputDelayWhenMaxed = !context.Runtime.State.Hardware.SimulateCpuInputDelayWhenMaxed;
-				context.Runtime.MarkChanged();
-			}) );
-
 		CreateSettingRow( section, $"Screen saver delay: {context.Runtime.State.ScreenSaver.DelaySeconds:0}s",
 			("-15s", () => AdjustScreenSaverDelay( -15f )),
 			("+15s", () => AdjustScreenSaverDelay( 15f )) );

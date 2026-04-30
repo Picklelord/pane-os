@@ -1,5 +1,6 @@
 @namespace PaneOS.InteractiveComputer
 @using PaneOS.InteractiveComputer
+@using System.Linq
 @using Microsoft.AspNetCore.Components
 @using Sandbox
 @using Sandbox.UI
@@ -11,6 +12,8 @@
 {
 	[Parameter] public ComputerRunningApp? Instance { get; set; }
 	private string? mountedInstanceId;
+
+	private Panel HostPanel => Children.FirstOrDefault() ?? this;
 
 	protected override int BuildHash()
 	{
@@ -30,11 +33,12 @@
 		if ( Instance?.Session.Content is null )
 			return;
 
-		if ( mountedInstanceId == Instance.State.InstanceId && Instance.Session.Content.Parent == this )
+		var hostPanel = HostPanel;
+		if ( mountedInstanceId == Instance.State.InstanceId && Instance.Session.Content.Parent == hostPanel )
 			return;
 
-		if ( Instance.Session.Content.Parent != this )
-			Instance.Session.Content.Parent = this;
+		if ( Instance.Session.Content.Parent != hostPanel )
+			Instance.Session.Content.Parent = hostPanel;
 
 		mountedInstanceId = Instance.State.InstanceId;
 	}

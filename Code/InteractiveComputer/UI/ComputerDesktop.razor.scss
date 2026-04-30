@@ -31,6 +31,7 @@
 	top: 12px;
 	right: 16px;
 	bottom: 16px;
+	pointer-events: none;
 }
 
 .desktop-shortcut {
@@ -45,6 +46,7 @@
 	border-radius: 2px;
 	color: white;
 	text-shadow: 1px 1px 1px #0f2d53;
+	pointer-events: all;
 }
 
 .desktop-shortcut:hover {
@@ -85,6 +87,7 @@
 	background-color: #5b99ff;
 	opacity: 0.18;
 	z-index: 4;
+	pointer-events: none;
 }
 
 .desktop-context-menu {

@@ -24,6 +24,7 @@ var tests = new (string Name, Action Body)[]
 	("File dialog policy normalizes extension filters", FileDialogPolicyNormalizesExtensions),
 	("File dialog policy resolves save paths in current folder", FileDialogPolicyResolvesSavePath),
 	("Wallpaper policy normalizes known wallpapers", WallpaperPolicyNormalizesKnownValues),
+	("Wallpaper policy uses the desktop background image by default", WallpaperPolicyUsesDesktopImageByDefault),
 	("Archive text files round-trip through My Documents", ArchiveTextFilesRoundTrip),
 	("Archive rename updates file names in place", ArchiveRenameMovesEntries),
 	("Archive delete can move items to recycle bin and restore them", ArchiveRecycleBinRoundTrip),
@@ -302,6 +303,13 @@ static void WallpaperPolicyNormalizesKnownValues()
 	Equal( "blue", ComputerWallpaperPolicy.Normalize( "Blue" ) );
 	Equal( "sunset", ComputerWallpaperPolicy.Normalize( "SUNSET" ) );
 	Equal( "default", ComputerWallpaperPolicy.Normalize( "something-else" ) );
+}
+
+static void WallpaperPolicyUsesDesktopImageByDefault()
+{
+	var style = ComputerWallpaperPolicy.GetBackgroundStyle( "default" );
+	AssertContains( "/Assets/desktopBackground.png", style );
+	AssertContains( "background-size: cover", style );
 }
 
 static void ArchiveTextFilesRoundTrip()
