@@ -37,7 +37,16 @@ public sealed class PaneOSRtScreenBridge : Component
 		base.OnValidate();
 
 		if ( ConfigureEveryStart )
-			Setup();
+		{
+			try
+			{
+				Setup();
+			}
+			catch ( Exception ex )
+			{
+				Log.Warning( $"PaneOS RT screen bridge validation on {GameObject.Name} could not finish setup yet: {ex.Message}" );
+			}
+		}
 	}
 
 	public void Setup()
@@ -92,7 +101,7 @@ public sealed class PaneOSRtScreenBridge : Component
 		if ( worldPanel is null )
 			worldPanel = screen.Components.Create<WorldPanel>();
 
-		worldPanel.PanelSize = new Vector2( computer.Runtime.State.ResolutionX, computer.Runtime.State.ResolutionY );
+		worldPanel.PanelSize = ResolveResolution( computer );
 		worldPanel.RenderScale = 1.0f;
 		worldPanel.LookAtCamera = false;
 		worldPanel.InteractionRange = 0.0f;
@@ -114,7 +123,7 @@ public sealed class PaneOSRtScreenBridge : Component
 		if ( camera is null )
 			camera = cameraObject.Components.Create<CameraComponent>();
 
-		var targetSize = new Vector2( computer.Runtime.State.ResolutionX, computer.Runtime.State.ResolutionY );
+		var targetSize = ResolveResolution( computer );
 		RenderTarget = Texture.CreateRenderTarget( ResolveScreenId( computer ), ImageFormat.RGBA8888, targetSize, camera.RenderTarget );
 		camera.RenderTarget = RenderTarget;
 		camera.CustomSize = targetSize;
@@ -149,5 +158,13 @@ public sealed class PaneOSRtScreenBridge : Component
 			ScreenId = generated;
 
 		return generated;
+	}
+
+	private static Vector2 ResolveResolution( InteractiveComputerComponent computer )
+	{
+		if ( computer.Runtime is not null )
+			return new Vector2( computer.Runtime.State.ResolutionX, computer.Runtime.State.ResolutionY );
+
+		return new Vector2( computer.ResolutionX, computer.ResolutionY );
 	}
 }

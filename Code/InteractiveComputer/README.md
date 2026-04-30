@@ -11,6 +11,8 @@ This module provides an XP-styled PaneOS interactive desktop for S&Box projects.
 
 `ComputerDesktop.VisibleOnlyWhenInteracting` controls whether the desktop only appears after interaction or is always rendered on the panel.
 
+If you want the player frozen while the desktop is open, add `ComputerInteractionPlayerLock` to the player GameObject and assign the movement/look components you want disabled during interaction.
+
 ## TV/monitor model setup with Sandbox: RT Screens
 
 1. Add the Sandbox: RT Screens package to the project.
