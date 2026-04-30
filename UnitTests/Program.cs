@@ -26,9 +26,15 @@ var tests = new (string Name, Action Body)[]
 	("Wallpaper policy normalizes known wallpapers", WallpaperPolicyNormalizesKnownValues),
 	("Archive text files round-trip through My Documents", ArchiveTextFilesRoundTrip),
 	("Archive rename updates file names in place", ArchiveRenameMovesEntries),
+	("Archive delete can move items to recycle bin and restore them", ArchiveRecycleBinRoundTrip),
 	("File associations open text files in Notepad", FileAssociationsOpenTextFiles),
 	("File associations open url files in Ridge", FileAssociationsOpenUrlFiles),
+	("Corrupted url shortcuts are rejected with a specific dialog", CorruptedUrlShortcutsAreRejected),
 	("File associations launch executables by resolved name", FileAssociationsLaunchExecutables),
+	("Missing executables are flagged as corrupted applications", MissingExecutablesAreRejected),
+	("Desktop shortcut layout wraps into additional columns", DesktopShortcutLayoutWrapsColumns),
+	("Desktop selection rectangle captures intersecting shortcuts", DesktopSelectionCapturesIntersectingShortcuts),
+	("Maintenance policy generates visible update and install logs", MaintenancePolicyGeneratesLogs),
 	("Computer state defaults include screensaver and app lists", ComputerStateDefaults),
 };
 
@@ -339,6 +345,31 @@ static void ArchiveRenameMovesEntries()
 	}
 }
 
+static void ArchiveRecycleBinRoundTrip()
+{
+	var tempPath = Path.Combine( Path.GetTempPath(), $"paneos-trash-{Guid.NewGuid():N}.datc" );
+	try
+	{
+		PaneArchiveFileSystem.EnsureArchive( tempPath, "Alice", Array.Empty<ComputerAppDescriptor>() );
+		var originalPath = new[] { "C:", "Users", "Alice", "My Documents", "Draft.txt" };
+		PaneArchiveFileSystem.WriteTextFile( tempPath, originalPath, "draft" );
+
+		var recycledPath = PaneArchiveFileSystem.MoveToRecycleBin( tempPath, originalPath );
+		False( PaneArchiveFileSystem.Exists( tempPath, originalPath ) );
+		True( PaneArchiveFileSystem.Exists( tempPath, recycledPath.TrimStart( '/' ).Split( '/' ) ) );
+
+		var restoredPath = PaneArchiveFileSystem.RestoreFromRecycleBin( tempPath, recycledPath.TrimStart( '/' ).Split( '/' ) );
+		True( PaneArchiveFileSystem.Exists( tempPath, originalPath ) );
+		Equal( "/C:/Users/Alice/My Documents/Draft.txt", restoredPath );
+		Equal( "draft", PaneArchiveFileSystem.ReadTextFile( tempPath, originalPath ) );
+	}
+	finally
+	{
+		if ( File.Exists( tempPath ) )
+			File.Delete( tempPath );
+	}
+}
+
 static void FileAssociationsOpenTextFiles()
 {
 	var target = ComputerFileAssociationPolicy.ResolveLaunchTarget(
@@ -363,6 +394,19 @@ static void FileAssociationsOpenUrlFiles()
 	Equal( "https://example.com", target?.InitialData["url"] );
 }
 
+static void CorruptedUrlShortcutsAreRejected()
+{
+	var result = ComputerFileAssociationPolicy.ResolveOpenResult(
+		"/C:/Users/Alice/My Documents/Broken.url",
+		"Broken.url",
+		"   ",
+		Array.Empty<ComputerAppDescriptor>() );
+
+	False( result.CanOpen );
+	Equal( "Corrupted Shortcut", result.FailureTitle );
+	AssertContains( "corrupted", result.FailureMessage );
+}
+
 static void FileAssociationsLaunchExecutables()
 {
 	var apps = new[]
@@ -383,6 +427,74 @@ static void FileAssociationsLaunchExecutables()
 		apps );
 
 	Equal( "system.calc", target?.AppId );
+}
+
+static void MissingExecutablesAreRejected()
+{
+	var result = ComputerFileAssociationPolicy.ResolveOpenResult(
+		"/C:/Apps/Unknown/Missing.exe",
+		"Missing.exe",
+		"",
+		Array.Empty<ComputerAppDescriptor>() );
+
+	False( result.CanOpen );
+	Equal( "Corrupted Application", result.FailureTitle );
+	AssertContains( "missing", result.FailureMessage );
+}
+
+static void DesktopShortcutLayoutWrapsColumns()
+{
+	var first = DesktopShortcutLayoutPolicy.GetPosition( 0, 768 );
+	var eighth = DesktopShortcutLayoutPolicy.GetPosition( 7, 768 );
+
+	Equal( DesktopShortcutLayoutPolicy.OriginX, first.X );
+	True( eighth.X > first.X );
+	Equal( DesktopShortcutLayoutPolicy.OriginY, eighth.Y );
+}
+
+static void DesktopSelectionCapturesIntersectingShortcuts()
+{
+	var items = new[]
+	{
+		new DesktopShortcutLayoutItem { Id = "a", Index = 0 },
+		new DesktopShortcutLayoutItem { Id = "b", Index = 1 },
+		new DesktopShortcutLayoutItem { Id = "c", Index = 7 }
+	};
+
+	var rect = DesktopShortcutSelectionRect.FromCorners( 0f, 0f, 100f, 190f );
+	var selected = DesktopShortcutLayoutPolicy.SelectIntersectingShortcutIds( items, rect, 768 );
+
+	Equal( 2, selected.Count );
+	True( selected.Contains( "a" ) );
+	True( selected.Contains( "b" ) );
+	False( selected.Contains( "c" ) );
+}
+
+static void MaintenancePolicyGeneratesLogs()
+{
+	var state = new ComputerState();
+	state.InstalledApps.Add( new ComputerInstalledAppState { AppId = "system.notepad" } );
+	state.OpenApps.Add( new ComputerAppState { AppId = "system.notepad", Title = "Notepad" } );
+
+	var apps = new[]
+	{
+		new ComputerAppDescriptor
+		{
+			Id = "system.notepad",
+			Title = "Notepad",
+			Factory = () => new StubComputerApp()
+		}
+	};
+
+	var timestamp = new DateTime( 2026, 4, 30, 1, 2, 3, DateTimeKind.Utc );
+	var updateRecord = ComputerMaintenancePolicy.BuildUpdateScanRecord( state, apps, timestamp );
+	var installRecord = ComputerMaintenancePolicy.BuildPackageInstallRecord( "Media Codec Pack", timestamp );
+
+	Equal( "PaneOS Update Report.txt", updateRecord.FileName );
+	AssertContains( "Installed apps: 1", updateRecord.FileContent );
+	AssertContains( "Notepad", updateRecord.FileContent );
+	Equal( "Media Codec Pack Setup Log.txt", installRecord.FileName );
+	AssertContains( "Package staged successfully.", installRecord.FileContent );
 }
 
 static void ComputerStateDefaults()
@@ -445,6 +557,14 @@ static void NotEqual<T>( T left, T right )
 {
 	if ( EqualityComparer<T>.Default.Equals( left, right ) )
 		throw new InvalidOperationException( $"Expected '{left}' and '{right}' to differ." );
+}
+
+static void AssertContains( string expectedSubstring, string actual )
+{
+	if ( actual.Contains( expectedSubstring, StringComparison.OrdinalIgnoreCase ) )
+		return;
+
+	throw new InvalidOperationException( $"Expected '{actual}' to contain '{expectedSubstring}'." );
 }
 
 file sealed class StubComputerApp : IComputerApp

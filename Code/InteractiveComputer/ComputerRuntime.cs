@@ -159,6 +159,7 @@ public sealed class ComputerRuntime
 		Apps = ResolveInstalledApps();
 		EnsureStartupProcessesRunning();
 		RefreshStorageMetrics();
+		PushNotification( "Installed", $"{Apps.FirstOrDefault( x => x.Id == appId )?.Title ?? appId} is now available.", "+" );
 		MarkChanged();
 	}
 
@@ -176,6 +177,7 @@ public sealed class ComputerRuntime
 		State.OpenApps.RemoveAll( x => x.AppId == appId );
 		Apps = ResolveInstalledApps();
 		RefreshStorageMetrics();
+		PushNotification( "Removed", $"{appId} was uninstalled.", "-" );
 		MarkChanged();
 	}
 
@@ -435,21 +437,105 @@ public sealed class ComputerRuntime
 
 		var fileName = path.LastOrDefault() ?? "";
 		var fileContent = PaneArchiveFileSystem.ReadTextFile( GetArchivePath(), path );
-		var launchTarget = ComputerFileAssociationPolicy.ResolveLaunchTarget( virtualPath, fileName, fileContent, Apps );
-		if ( launchTarget is null )
+		var openResult = ComputerFileAssociationPolicy.ResolveOpenResult( virtualPath, fileName, fileContent, Apps );
+		if ( !openResult.CanOpen || openResult.LaunchTarget is null )
 		{
 			ShowMessageBox( new ComputerMessageBoxOptions
 			{
-				Title = "Cannot Open File",
-				Message = $"PaneOS does not know how to open {fileName}.",
+				Title = openResult.FailureTitle,
+				Message = string.IsNullOrWhiteSpace( openResult.FailureMessage )
+					? $"PaneOS does not know how to open {fileName}."
+					: openResult.FailureMessage,
 				Icon = "!",
 				Buttons = new[] { "OK" }
 			} );
 			return false;
 		}
 
-		OpenApp( launchTarget.AppId, launchTarget.InitialData );
+		OpenApp( openResult.LaunchTarget.AppId, openResult.LaunchTarget.InitialData );
 		return true;
+	}
+
+	public string DeleteVirtualPath( string virtualPath )
+	{
+		var path = ParseVirtualPath( virtualPath );
+		if ( path.Count == 0 )
+			return "";
+
+		EnsureArchiveExists();
+		if ( IsRecycleBinPath( path ) )
+		{
+			PaneArchiveFileSystem.Delete( GetArchivePath(), path );
+			PushNotification( "Deleted", $"{path.Last()} was removed permanently.", "X" );
+			RefreshTransientUi();
+			return "";
+		}
+
+		var recycledPath = PaneArchiveFileSystem.MoveToRecycleBin( GetArchivePath(), path );
+		PushNotification( "Moved To Recycle Bin", $"{path.Last()} can be restored later.", "RB" );
+		RefreshTransientUi();
+		return recycledPath;
+	}
+
+	public string RestoreVirtualPath( string virtualPath )
+	{
+		var path = ParseVirtualPath( virtualPath );
+		if ( path.Count == 0 || !IsRecycleBinPath( path ) )
+			return "";
+
+		EnsureArchiveExists();
+		var restoredPath = PaneArchiveFileSystem.RestoreFromRecycleBin( GetArchivePath(), path );
+		if ( !string.IsNullOrWhiteSpace( restoredPath ) )
+		{
+			PushNotification( "Restored", $"{path.Last()} returned from the Recycle Bin.", "RB" );
+			RefreshTransientUi();
+		}
+
+		return restoredPath;
+	}
+
+	public string RunSystemUpdateScan()
+	{
+		EnsureArchiveExists();
+		var record = ComputerMaintenancePolicy.BuildUpdateScanRecord( State, Apps, DateTime.UtcNow );
+		var reportPath = WriteMaintenanceRecord( record );
+		PushNotification( record.NotificationTitle, record.NotificationMessage, "UP" );
+		ShowMessageBox(
+			new ComputerMessageBoxOptions
+			{
+				Title = record.Title,
+				Message = record.Summary,
+				Icon = "UP",
+				Buttons = new[] { "Open Report", "Close" }
+			},
+			result =>
+			{
+				if ( result.ButtonPressed.Equals( "Open Report", StringComparison.OrdinalIgnoreCase ) )
+					OpenVirtualPath( reportPath );
+			} );
+		return reportPath;
+	}
+
+	public string RunPackageInstall( string packageName )
+	{
+		EnsureArchiveExists();
+		var record = ComputerMaintenancePolicy.BuildPackageInstallRecord( packageName, DateTime.UtcNow );
+		var logPath = WriteMaintenanceRecord( record );
+		PushNotification( record.NotificationTitle, record.NotificationMessage, "+" );
+		ShowMessageBox(
+			new ComputerMessageBoxOptions
+			{
+				Title = record.Title,
+				Message = record.Summary,
+				Icon = "+",
+				Buttons = new[] { "Open Log", "Close" }
+			},
+			result =>
+			{
+				if ( result.ButtonPressed.Equals( "Open Log", StringComparison.OrdinalIgnoreCase ) )
+					OpenVirtualPath( logPath );
+			} );
+		return logPath;
 	}
 
 	public bool ShouldBlockInput( string instanceId )
@@ -811,6 +897,8 @@ public sealed class ComputerRuntime
 				if ( random.NextSingle() < ToPerSampleChance( descriptor.ChanceToStopRespondingPerMinute, deltaSeconds ) )
 				{
 					app.State.Status = ComputerProcessStatus.NotResponding;
+					PushNotification( "Application Error", $"{app.State.Title} has stopped responding.", "!" );
+					ShowStopRespondingDialog( app );
 					persistentStateChanged = true;
 				}
 			}
@@ -821,6 +909,8 @@ public sealed class ComputerRuntime
 				{
 					simulation.LeakTriggered = true;
 					simulation.LeakMultiplier = 1.18f;
+					PushNotification( "Memory Warning", $"{app.State.Title} is using more memory than expected.", "!" );
+					ShowMemoryLeakDialog( app );
 				}
 			}
 			else if ( simulation.LeakTriggered )
@@ -947,6 +1037,66 @@ public sealed class ComputerRuntime
 		Metrics.UnusedStorageGb = MathF.Max( 0f, State.Hardware.HddStorageGb - usedStorage );
 	}
 
+	private string WriteMaintenanceRecord( ComputerMaintenanceRecord record )
+	{
+		var virtualPath = $"{GetDefaultDocumentsPath().TrimEnd( '/')}/{record.FileName}";
+		PaneArchiveFileSystem.WriteTextFile( GetArchivePath(), ParseVirtualPath( virtualPath ), record.FileContent );
+		RefreshTransientUi();
+		return virtualPath;
+	}
+
+	private void ShowStopRespondingDialog( ComputerRunningApp app )
+	{
+		if ( activeMessageBox is not null || !app.Descriptor.HasWindow )
+			return;
+
+		ShowMessageBox(
+			new ComputerMessageBoxOptions
+			{
+				Title = "Application Error",
+				Message = $"{app.State.Title} has stopped responding. You can wait for it or close it now.",
+				Icon = "!",
+				Buttons = new[] { "Wait", "Close App" }
+			},
+			result =>
+			{
+				if ( result.ButtonPressed.Equals( "Close App", StringComparison.OrdinalIgnoreCase ) )
+					Close( app.State.InstanceId );
+			} );
+	}
+
+	private void ShowMemoryLeakDialog( ComputerRunningApp app )
+	{
+		if ( activeMessageBox is not null || !app.Descriptor.HasWindow )
+			return;
+
+		ShowMessageBox(
+			new ComputerMessageBoxOptions
+			{
+				Title = "Memory Warning",
+				Message = $"{app.State.Title} may have a memory leak. Restarting it can recover RAM.",
+				Icon = "!",
+				Buttons = new[] { "Ignore", "Restart App" }
+			},
+			result =>
+			{
+				if ( result.ButtonPressed.Equals( "Restart App", StringComparison.OrdinalIgnoreCase ) )
+					RestartAppInstance( app.State.InstanceId );
+			} );
+	}
+
+	private void RestartAppInstance( string instanceId )
+	{
+		if ( !runningApps.TryGetValue( instanceId, out var app ) )
+			return;
+
+		var appId = app.State.AppId;
+		var data = new Dictionary<string, string>( app.State.Data, StringComparer.OrdinalIgnoreCase );
+		var focusWindow = app.Descriptor.HasWindow;
+		Close( instanceId );
+		OpenAppInternal( appId, focusWindow, true, data );
+	}
+
 	private void EnsureArchiveExists()
 	{
 		PaneArchiveFileSystem.EnsureArchive( GetArchivePath(), ResolvePlayerFolderName(), Apps );
@@ -955,6 +1105,13 @@ public sealed class ComputerRuntime
 	private string ResolvePlayerFolderName()
 	{
 		return PaneArchiveFileSystem.NormalizeDisplayName( computer.ResolvePersistentArchiveUserName( State ) );
+	}
+
+	private static bool IsRecycleBinPath( IReadOnlyList<string> path )
+	{
+		return path.Count >= 2 &&
+			path[0].Equals( "C:", StringComparison.OrdinalIgnoreCase ) &&
+			path[1].Equals( "Recycle Bin", StringComparison.OrdinalIgnoreCase );
 	}
 
 	private void RefreshActiveFileDialogItems()

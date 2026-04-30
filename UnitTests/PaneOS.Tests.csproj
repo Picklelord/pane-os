@@ -13,7 +13,9 @@
     <Compile Include="..\Code\InteractiveComputer\Core\ComputerFileAssociationPolicy.cs" Link="PaneOS\ComputerFileAssociationPolicy.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\ComputerFileDialogPolicy.cs" Link="PaneOS\ComputerFileDialogPolicy.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\ComputerInputDelayPolicy.cs" Link="PaneOS\ComputerInputDelayPolicy.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\ComputerMaintenancePolicy.cs" Link="PaneOS\ComputerMaintenancePolicy.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\ComputerWallpaperPolicy.cs" Link="PaneOS\ComputerWallpaperPolicy.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\DesktopShortcutLayoutPolicy.cs" Link="PaneOS\DesktopShortcutLayoutPolicy.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\PaneArchiveFileSystem.cs" Link="PaneOS\PaneArchiveFileSystem.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\RidgeBrowserPolicy.cs" Link="PaneOS\RidgeBrowserPolicy.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\ScreenSaverSimulator.cs" Link="PaneOS\ScreenSaverSimulator.cs" />

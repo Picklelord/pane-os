@@ -89,6 +89,7 @@ public static class PaneArchiveFileSystem
 		}
 
 		return children.Values
+			.Where( x => !x.Name.StartsWith( "$paneos-", StringComparison.OrdinalIgnoreCase ) )
 			.OrderByDescending( x => x.IsDirectory )
 			.ThenBy( x => x.Name, StringComparer.OrdinalIgnoreCase )
 			.ToList();
@@ -153,6 +154,16 @@ public static class PaneArchiveFileSystem
 		WriteEntries( archivePath, entries );
 	}
 
+	public static void Move( string archivePath, IReadOnlyList<string> sourcePath, IReadOnlyList<string> destinationPath )
+	{
+		if ( sourcePath.Count == 0 || destinationPath.Count == 0 )
+			return;
+
+		var entries = ReadEntries( archivePath );
+		MoveEntries( entries, sourcePath.ToArray(), destinationPath.ToArray() );
+		WriteEntries( archivePath, entries );
+	}
+
 	public static bool Exists( string archivePath, IReadOnlyList<string> targetPath )
 	{
 		var entries = ReadEntries( archivePath );
@@ -166,7 +177,54 @@ public static class PaneArchiveFileSystem
 
 		var entries = ReadEntries( archivePath );
 		entries.RemoveAll( x => x.Segments.Count >= targetPath.Count && x.Segments.Take( targetPath.Count ).SequenceEqual( targetPath ) );
+		DeleteRecycleBinMetadata( entries, targetPath );
 		WriteEntries( archivePath, entries );
+	}
+
+	public static string MoveToRecycleBin( string archivePath, IReadOnlyList<string> targetPath )
+	{
+		if ( targetPath.Count == 0 )
+			return "";
+
+		var entries = ReadEntries( archivePath );
+		var recycleRoot = new[] { "C:", "Recycle Bin" };
+		EnsureDirectory( entries, recycleRoot );
+		EnsureDirectory( entries, recycleRoot.Concat( new[] { "$paneos-meta" } ).ToArray() );
+		var sourceName = targetPath.Last();
+		var recycleName = ResolveUniqueChildName( entries, recycleRoot, sourceName );
+		var destinationPath = recycleRoot.Concat( new[] { recycleName } ).ToArray();
+		var originalParentPath = "/" + string.Join( "/", targetPath.Take( targetPath.Count - 1 ) );
+		MoveEntries( entries, targetPath.ToArray(), destinationPath );
+		EnsureFile(
+			entries,
+			Encoding.UTF8.GetBytes( originalParentPath ),
+			"C:",
+			"Recycle Bin",
+			"$paneos-meta",
+			$"{recycleName}.restore.txt" );
+		WriteEntries( archivePath, entries );
+		return "/" + string.Join( "/", destinationPath );
+	}
+
+	public static string RestoreFromRecycleBin( string archivePath, IReadOnlyList<string> recyclePath )
+	{
+		if ( recyclePath.Count < 3 || !IsUnderPath( recyclePath, new[] { "C:", "Recycle Bin" } ) )
+			return "";
+
+		var entries = ReadEntries( archivePath );
+		var recycleName = recyclePath.Last();
+		var metadataPath = new[] { "C:", "Recycle Bin", "$paneos-meta", $"{recycleName}.restore.txt" };
+		var originalParentPath = ReadTextFileFromEntries( entries, metadataPath );
+		if ( string.IsNullOrWhiteSpace( originalParentPath ) )
+			originalParentPath = "/C:/Users";
+
+		var parentPath = ParseVirtualPath( originalParentPath );
+		var restoredName = ResolveUniqueChildName( entries, parentPath, recycleName );
+		var destinationPath = parentPath.Concat( new[] { restoredName } ).ToArray();
+		MoveEntries( entries, recyclePath.ToArray(), destinationPath );
+		entries.RemoveAll( x => !x.IsDirectory && x.Segments.SequenceEqual( metadataPath ) );
+		WriteEntries( archivePath, entries );
+		return "/" + string.Join( "/", destinationPath );
 	}
 
 	public static List<ComputerStorageBreakdownItem> BuildStorageBreakdown( string archivePath, IEnumerable<ComputerAppDescriptor> apps )
@@ -319,6 +377,60 @@ public static class PaneArchiveFileSystem
 			Segments = segments.ToList(),
 			Content = content
 		} );
+	}
+
+	private static void MoveEntries( List<ArchiveEntryModel> entries, string[] sourcePrefix, string[] destinationPrefix )
+	{
+		foreach ( var entry in entries.Where( x => x.Segments.Count >= sourcePrefix.Length && x.Segments.Take( sourcePrefix.Length ).SequenceEqual( sourcePrefix ) ) )
+		{
+			entry.Segments = destinationPrefix.Concat( entry.Segments.Skip( sourcePrefix.Length ) ).ToList();
+		}
+	}
+
+	private static string ResolveUniqueChildName( List<ArchiveEntryModel> entries, IReadOnlyList<string> parentPath, string desiredName )
+	{
+		var name = desiredName;
+		var stem = Path.GetFileNameWithoutExtension( desiredName );
+		var extension = Path.GetExtension( desiredName );
+		var suffix = 2;
+		while ( entries.Any( x => x.Segments.Count >= parentPath.Count + 1 &&
+			x.Segments.Take( parentPath.Count ).SequenceEqual( parentPath ) &&
+			x.Segments[parentPath.Count].Equals( name, StringComparison.OrdinalIgnoreCase ) ) )
+		{
+			name = string.IsNullOrWhiteSpace( extension )
+				? $"{stem} ({suffix++})"
+				: $"{stem} ({suffix++}){extension}";
+		}
+
+		return name;
+	}
+
+	private static bool IsUnderPath( IReadOnlyList<string> path, IReadOnlyList<string> parentPath )
+	{
+		return path.Count >= parentPath.Count && path.Take( parentPath.Count ).SequenceEqual( parentPath );
+	}
+
+	private static string ReadTextFileFromEntries( List<ArchiveEntryModel> entries, IReadOnlyList<string> filePath )
+	{
+		var file = entries.FirstOrDefault( x => !x.IsDirectory && x.Segments.SequenceEqual( filePath ) );
+		return file is null ? "" : Encoding.UTF8.GetString( file.Content );
+	}
+
+	private static IReadOnlyList<string> ParseVirtualPath( string virtualPath )
+	{
+		return virtualPath
+			.Trim()
+			.TrimStart( '/' )
+			.Split( '/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries );
+	}
+
+	private static void DeleteRecycleBinMetadata( List<ArchiveEntryModel> entries, IReadOnlyList<string> targetPath )
+	{
+		if ( targetPath.Count < 3 || !IsUnderPath( targetPath, new[] { "C:", "Recycle Bin" } ) )
+			return;
+
+		var recycleName = targetPath[2];
+		entries.RemoveAll( x => !x.IsDirectory && x.Segments.SequenceEqual( new[] { "C:", "Recycle Bin", "$paneos-meta", $"{recycleName}.restore.txt" } ) );
 	}
 
 	private static string EncodePath( IReadOnlyList<string> segments, bool isDirectory )

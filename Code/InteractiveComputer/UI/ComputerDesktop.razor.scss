@@ -37,14 +37,12 @@
 	position: absolute;
 	left: 14px;
 	top: 12px;
-	width: 310px;
-	display: flex;
-	flex-direction: column;
-	flex-wrap: wrap;
-	gap: 12px;
+	right: 16px;
+	bottom: 16px;
 }
 
 .desktop-shortcut {
+	position: absolute;
 	width: 82px;
 	min-height: 76px;
 	align-items: center;
@@ -60,6 +58,11 @@
 .desktop-shortcut:hover {
 	background-color: rgba(49, 106, 197, 0.42);
 	border-color: rgba(255, 255, 255, 0.45);
+}
+
+.desktop-shortcut.selected {
+	background-color: rgba(49, 106, 197, 0.52);
+	border-color: rgba(255, 255, 255, 0.7);
 }
 
 .desktop-icon {
@@ -82,6 +85,37 @@
 	text-align: center;
 	font-size: 12px;
 	line-height: 14px;
+}
+
+.desktop-selection-box {
+	position: absolute;
+	border: 1px solid rgba(133, 181, 255, 0.95);
+	background: rgba(91, 153, 255, 0.18);
+	z-index: 4;
+}
+
+.desktop-context-menu {
+	position: absolute;
+	min-width: 124px;
+	flex-direction: column;
+	border: 1px solid #8ea1bf;
+	background: #ffffff;
+	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+	z-index: 12000;
+}
+
+.desktop-context-menu button {
+	height: 28px;
+	padding: 0 10px;
+	align-items: center;
+	justify-content: flex-start;
+	border-top: 1px solid #e5ebf5;
+	background: linear-gradient(180deg, #ffffff, #edf3fd);
+	color: #1c3d73;
+}
+
+.desktop-context-menu button:first-child {
+	border-top: 0;
 }
 
 .xp-window {

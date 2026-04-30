@@ -60,6 +60,7 @@ public sealed class PaneExplorerPanel : Panel
 		CreateToolbarButton( toolbar, "My Documents", () => NavigateTo( documentsPath ) );
 		CreateToolbarButton( toolbar, "Rename", PromptRenameSelected );
 		CreateToolbarButton( toolbar, "Add Folder", PromptForCreate );
+		CreateToolbarButton( toolbar, "Restore Selected", RestoreSelected );
 		CreateToolbarButton( toolbar, "Delete Selected", DeleteSelected );
 
 		pathLabel = new Label { Parent = this };
@@ -174,9 +175,23 @@ public sealed class PaneExplorerPanel : Panel
 		if ( targetPath.Count == 0 )
 			return;
 
-		PaneArchiveFileSystem.Delete( archivePath, targetPath );
+		context.Runtime.DeleteVirtualPath( target );
 		selectedPath = null;
-		context.Runtime.RefreshTransientUi();
+		RefreshListing();
+	}
+
+	private void RestoreSelected()
+	{
+		var target = selectedPath ?? contextMenuPath;
+		if ( string.IsNullOrWhiteSpace( target ) )
+			return;
+
+		HideContextMenu();
+		if ( !IsRecycleBinPath( target ) )
+			return;
+
+		context.Runtime.RestoreVirtualPath( target );
+		selectedPath = null;
 		RefreshListing();
 	}
 
@@ -270,6 +285,8 @@ public sealed class PaneExplorerPanel : Panel
 				ActivateItem( item );
 		} );
 		CreateContextMenuButton( menu, "Rename", PromptRenameSelected );
+		if ( IsRecycleBinPath( targetPath ) )
+			CreateContextMenuButton( menu, "Restore", RestoreSelected );
 		CreateContextMenuButton( menu, "Delete", DeleteSelected );
 	}
 
@@ -306,6 +323,11 @@ public sealed class PaneExplorerPanel : Panel
 			.Trim()
 			.TrimStart( '/' )
 			.Split( '/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries );
+	}
+
+	private static bool IsRecycleBinPath( string virtualPath )
+	{
+		return virtualPath.StartsWith( "/C:/Recycle Bin/", StringComparison.OrdinalIgnoreCase );
 	}
 
 	private static void AddCell( Panel row, string text, bool header = false )

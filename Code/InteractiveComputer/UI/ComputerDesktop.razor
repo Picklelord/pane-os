@@ -49,30 +49,46 @@
 			else
 			{
 				<div class="shortcut-grid">
-					@foreach ( var app in Runtime.Apps )
+					@foreach ( var shortcut in GetDesktopShortcuts() )
 					{
-						if ( !app.ShowOnDesktop )
-							continue;
-
-						<div class="desktop-shortcut" onclick="@(() => OpenApp( app.Id ))">
-							<div class="desktop-icon">@app.Icon</div>
-							<label>@app.Title</label>
-						</div>
-					}
-
-					<div class="desktop-shortcut" ondblclick="@OpenRecycleBin">
-						<div class="desktop-icon">RB</div>
-						<label>Recycle Bin</label>
-					</div>
-
-					@foreach ( var item in GetDesktopDocumentItems() )
-					{
-						<div class="desktop-shortcut" ondblclick="@(() => OpenDesktopDocument( item.VirtualPath ))">
-							<div class="desktop-icon">@(item.IsDirectory ? "FD" : "FI")</div>
-							<label>@item.Name</label>
+						<div class="desktop-shortcut @(selectedDesktopShortcutIds.Contains( shortcut.Id ) ? "selected" : "")"
+							 style="@GetShortcutStyle( shortcut.Index )"
+							 onclick="@(() => SelectDesktopShortcut( shortcut.Id ))"
+							 ondblclick="@(() => ActivateDesktopShortcut( shortcut.Id ))"
+							 oncontextmenu="@(() => OpenDesktopContextMenu( shortcut.Id ))">
+							<div class="desktop-icon">@shortcut.Icon</div>
+							<label>@shortcut.Label</label>
 						</div>
 					}
 				</div>
+
+				@if ( isSelectingDesktop )
+				{
+					<div class="desktop-selection-box" style="@GetDesktopSelectionStyle()"></div>
+				}
+
+				@if ( desktopContextMenuShortcutId is not null )
+				{
+					var contextShortcut = GetDesktopShortcutById( desktopContextMenuShortcutId );
+					if ( contextShortcut is not null )
+					{
+						<div class="desktop-context-menu" style="@GetDesktopContextMenuStyle()">
+							<button onclick="@(() => ActivateDesktopShortcut( contextShortcut.Id ))">Open</button>
+							@if ( contextShortcut.CanRename )
+							{
+								<button onclick="@PromptRenameSelectedDesktopShortcut">Rename</button>
+							}
+							@if ( contextShortcut.CanRestore )
+							{
+								<button onclick="@RestoreSelectedDesktopShortcut">Restore</button>
+							}
+							@if ( contextShortcut.CanDelete )
+							{
+								<button onclick="@DeleteSelectedDesktopShortcuts">Delete</button>
+							}
+						</div>
+					}
+				}
 
 				@foreach ( var app in Runtime.OpenApps )
 				{
@@ -279,6 +295,12 @@
 	private string? draggingWindowId;
 	private Vector2 draggingWindowOffset;
 	private bool wasDraggingWindow;
+	private bool isSelectingDesktop;
+	private Vector2 desktopSelectionStart;
+	private Vector2 desktopSelectionCurrent;
+	private Vector2 desktopContextMenuPosition;
+	private string? desktopContextMenuShortcutId;
+	private readonly HashSet<string> selectedDesktopShortcutIds = new( StringComparer.OrdinalIgnoreCase );
 	private bool ShouldShowDesktop => Computer is not null && Runtime is not null && (!VisibleOnlyWhenInteracting || Computer.IsPlayerInteracting);
 
 	protected override int BuildHash()
@@ -317,21 +339,6 @@
 	private void OpenApp( string appId )
 	{
 		Runtime?.OpenApp( appId );
-		StateHasChanged();
-	}
-
-	private void OpenRecycleBin()
-	{
-		Runtime?.OpenApp( "system.paneexplorer", new Dictionary<string, string>
-		{
-			["path"] = "/C:/Recycle Bin"
-		} );
-		StateHasChanged();
-	}
-
-	private void OpenDesktopDocument( string virtualPath )
-	{
-		Runtime?.OpenVirtualPath( virtualPath );
 		StateHasChanged();
 	}
 
@@ -374,9 +381,13 @@
 			return;
 
 		Runtime.NotifyUserActivity();
+		HideDesktopContextMenu();
 
 		if ( !Runtime.State.StartMenuOpen )
+		{
+			StateHasChanged();
 			return;
+		}
 
 		Runtime.State.StartMenuOpen = false;
 		Runtime.MarkChanged();
@@ -469,12 +480,24 @@
 			return;
 
 		var dragCandidate = FindDragCandidate();
-		if ( dragCandidate is null )
+		if ( dragCandidate is not null )
+		{
+			draggingWindowId = dragCandidate.State.InstanceId;
+			draggingWindowOffset = GetLocalMousePosition() - new Vector2( dragCandidate.State.X, dragCandidate.State.Y );
+			Runtime.Focus( dragCandidate.State.InstanceId );
+			StateHasChanged();
+			e.StopPropagation();
+			return;
+		}
+
+		if ( TryGetDesktopShortcutAt( GetLocalMousePosition(), out _ ) )
 			return;
 
-		draggingWindowId = dragCandidate.State.InstanceId;
-		draggingWindowOffset = GetLocalMousePosition() - new Vector2( dragCandidate.State.X, dragCandidate.State.Y );
-		Runtime.Focus( dragCandidate.State.InstanceId );
+		HideDesktopContextMenu();
+		selectedDesktopShortcutIds.Clear();
+		isSelectingDesktop = true;
+		desktopSelectionStart = GetLocalMousePosition();
+		desktopSelectionCurrent = desktopSelectionStart;
 		StateHasChanged();
 		e.StopPropagation();
 	}
@@ -482,6 +505,14 @@
 	protected override void OnMouseMove( MousePanelEvent e )
 	{
 		base.OnMouseMove( e );
+
+		if ( isSelectingDesktop )
+		{
+			desktopSelectionCurrent = GetLocalMousePosition();
+			StateHasChanged();
+			e.StopPropagation();
+			return;
+		}
 
 		if ( draggingWindowId is null )
 			return;
@@ -493,6 +524,15 @@
 	protected override void OnMouseUp( MousePanelEvent e )
 	{
 		base.OnMouseUp( e );
+
+		if ( isSelectingDesktop )
+		{
+			isSelectingDesktop = false;
+			UpdateDesktopSelectionFromRectangle();
+			StateHasChanged();
+			e.StopPropagation();
+			return;
+		}
 
 		if ( draggingWindowId is null )
 			return;
@@ -559,15 +599,257 @@
 			: ComputerWallpaperPolicy.GetBackgroundStyle( Runtime.State.DesktopWallpaper );
 	}
 
-	private IReadOnlyList<PaneArchiveItem> GetDesktopDocumentItems()
+	private IReadOnlyList<DesktopShortcutItem> GetDesktopShortcuts()
 	{
 		if ( Runtime is null )
-			return Array.Empty<PaneArchiveItem>();
+			return Array.Empty<DesktopShortcutItem>();
 
-		return PaneArchiveFileSystem.GetItems(
-			Runtime.GetArchivePath(),
-			Runtime.GetDefaultDocumentsPath()
-				.TrimStart( '/' )
-				.Split( '/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries ) );
+		var shortcuts = new List<DesktopShortcutItem>();
+		foreach ( var app in Runtime.Apps.Where( x => x.ShowOnDesktop ) )
+		{
+			shortcuts.Add( new DesktopShortcutItem
+			{
+				Id = $"app:{app.Id}",
+				Label = app.Title,
+				Icon = app.Icon,
+				AppId = app.Id
+			} );
+		}
+
+		shortcuts.Add( new DesktopShortcutItem
+		{
+			Id = "special:recycle",
+			Label = "Recycle Bin",
+			Icon = "RB",
+			VirtualPath = "/C:/Recycle Bin",
+			IsDirectory = true
+		} );
+
+		foreach ( var item in PaneArchiveFileSystem.GetItems( Runtime.GetArchivePath(), ParseVirtualPath( Runtime.GetDefaultDocumentsPath() ) ) )
+		{
+			shortcuts.Add( new DesktopShortcutItem
+			{
+				Id = $"doc:{item.VirtualPath}",
+				Label = item.Name,
+				Icon = item.IsDirectory ? "FD" : "FI",
+				VirtualPath = item.VirtualPath,
+				IsDirectory = item.IsDirectory,
+				CanRename = true,
+				CanDelete = true
+			} );
+		}
+
+		for ( var index = 0; index < shortcuts.Count; index++ )
+			shortcuts[index].Index = index;
+
+		return shortcuts;
+	}
+
+	private DesktopShortcutItem? GetDesktopShortcutById( string shortcutId )
+	{
+		return GetDesktopShortcuts().FirstOrDefault( x => x.Id.Equals( shortcutId, StringComparison.OrdinalIgnoreCase ) );
+	}
+
+	private string GetShortcutStyle( int index )
+	{
+		var position = GetShortcutPosition( index );
+		return $"left: {position.x}px; top: {position.y}px;";
+	}
+
+	private Vector2 GetShortcutPosition( int index )
+	{
+		var position = DesktopShortcutLayoutPolicy.GetPosition( index, Runtime?.State.ResolutionY ?? 768 );
+		return new Vector2( position.X, position.Y );
+	}
+
+	private bool TryGetDesktopShortcutAt( Vector2 localMousePosition, out DesktopShortcutItem? shortcut )
+	{
+		var resolutionY = Runtime?.State.ResolutionY ?? 768;
+		foreach ( var item in GetDesktopShortcuts() )
+		{
+			if ( !DesktopShortcutLayoutPolicy.HitTest( item.Index, resolutionY, localMousePosition.x, localMousePosition.y ) )
+				continue;
+
+			shortcut = item;
+			return true;
+		}
+
+		shortcut = null;
+		return false;
+	}
+
+	private void SelectDesktopShortcut( string shortcutId )
+	{
+		selectedDesktopShortcutIds.Clear();
+		selectedDesktopShortcutIds.Add( shortcutId );
+		HideDesktopContextMenu();
+		StateHasChanged();
+	}
+
+	private void ActivateDesktopShortcut( string shortcutId )
+	{
+		var shortcut = GetDesktopShortcutById( shortcutId );
+		if ( shortcut is null || Runtime is null )
+			return;
+
+		if ( !string.IsNullOrWhiteSpace( shortcut.AppId ) )
+		{
+			Runtime.OpenApp( shortcut.AppId );
+		}
+		else if ( shortcut.IsDirectory )
+		{
+			Runtime.OpenApp( "system.paneexplorer", new Dictionary<string, string>
+			{
+				["path"] = shortcut.VirtualPath ?? Runtime.GetDefaultDocumentsPath()
+			} );
+		}
+		else if ( !string.IsNullOrWhiteSpace( shortcut.VirtualPath ) )
+		{
+			Runtime.OpenVirtualPath( shortcut.VirtualPath );
+		}
+
+		StateHasChanged();
+	}
+
+	private void OpenDesktopContextMenu( string shortcutId )
+	{
+		selectedDesktopShortcutIds.Clear();
+		selectedDesktopShortcutIds.Add( shortcutId );
+		desktopContextMenuShortcutId = shortcutId;
+		desktopContextMenuPosition = GetLocalMousePosition();
+		StateHasChanged();
+	}
+
+	private string GetDesktopContextMenuStyle()
+	{
+		return $"left: {desktopContextMenuPosition.x}px; top: {desktopContextMenuPosition.y}px;";
+	}
+
+	private void HideDesktopContextMenu()
+	{
+		desktopContextMenuShortcutId = null;
+	}
+
+	private string GetDesktopSelectionStyle()
+	{
+		var selection = DesktopShortcutSelectionRect.FromCorners(
+			desktopSelectionStart.x,
+			desktopSelectionStart.y,
+			desktopSelectionCurrent.x,
+			desktopSelectionCurrent.y );
+		return $"left: {selection.Left}px; top: {selection.Top}px; width: {selection.Right - selection.Left}px; height: {selection.Bottom - selection.Top}px;";
+	}
+
+	private void UpdateDesktopSelectionFromRectangle()
+	{
+		selectedDesktopShortcutIds.Clear();
+		var selection = DesktopShortcutSelectionRect.FromCorners(
+			desktopSelectionStart.x,
+			desktopSelectionStart.y,
+			desktopSelectionCurrent.x,
+			desktopSelectionCurrent.y );
+		var selectedIds = DesktopShortcutLayoutPolicy.SelectIntersectingShortcutIds(
+			GetDesktopShortcuts().Select( x => new DesktopShortcutLayoutItem { Id = x.Id, Index = x.Index } ),
+			selection,
+			Runtime?.State.ResolutionY ?? 768 );
+		foreach ( var shortcutId in selectedIds )
+			selectedDesktopShortcutIds.Add( shortcutId );
+	}
+
+	private void PromptRenameSelectedDesktopShortcut()
+	{
+		if ( Runtime is null || selectedDesktopShortcutIds.Count != 1 )
+			return;
+
+		var shortcut = GetDesktopShortcutById( selectedDesktopShortcutIds.First() );
+		if ( shortcut is null || !shortcut.CanRename || string.IsNullOrWhiteSpace( shortcut.VirtualPath ) )
+			return;
+
+		HideDesktopContextMenu();
+		Runtime.ShowMessageBox(
+			new ComputerMessageBoxOptions
+			{
+				Title = "Rename Shortcut",
+				Message = "Enter a new file or folder name.",
+				Icon = "R",
+				HasTextInput = true,
+				TextInputValue = shortcut.Label,
+				TextInputPlaceholder = shortcut.Label,
+				Buttons = new[] { "Rename", "Cancel" }
+			},
+			result =>
+			{
+				if ( !result.ButtonPressed.Equals( "Rename", StringComparison.OrdinalIgnoreCase ) )
+					return;
+
+				var newName = result.TextValue.Trim();
+				if ( string.IsNullOrWhiteSpace( newName ) )
+					return;
+
+				PaneArchiveFileSystem.Rename( Runtime.GetArchivePath(), ParseVirtualPath( shortcut.VirtualPath ), newName );
+				selectedDesktopShortcutIds.Clear();
+				Runtime.RefreshTransientUi();
+				StateHasChanged();
+			} );
+	}
+
+	private void DeleteSelectedDesktopShortcuts()
+	{
+		if ( Runtime is null )
+			return;
+
+		foreach ( var shortcutId in selectedDesktopShortcutIds.ToArray() )
+		{
+			var shortcut = GetDesktopShortcutById( shortcutId );
+			if ( shortcut is null || !shortcut.CanDelete || string.IsNullOrWhiteSpace( shortcut.VirtualPath ) )
+				continue;
+
+			Runtime.DeleteVirtualPath( shortcut.VirtualPath );
+		}
+
+		selectedDesktopShortcutIds.Clear();
+		HideDesktopContextMenu();
+		StateHasChanged();
+	}
+
+	private void RestoreSelectedDesktopShortcut()
+	{
+		if ( Runtime is null )
+			return;
+
+		foreach ( var shortcutId in selectedDesktopShortcutIds.ToArray() )
+		{
+			var shortcut = GetDesktopShortcutById( shortcutId );
+			if ( shortcut is null || !shortcut.CanRestore || string.IsNullOrWhiteSpace( shortcut.VirtualPath ) )
+				continue;
+
+			Runtime.RestoreVirtualPath( shortcut.VirtualPath );
+		}
+
+		selectedDesktopShortcutIds.Clear();
+		HideDesktopContextMenu();
+		StateHasChanged();
+	}
+
+	private static IReadOnlyList<string> ParseVirtualPath( string virtualPath )
+	{
+		return virtualPath
+			.Trim()
+			.TrimStart( '/' )
+			.Split( '/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries );
+	}
+
+	private sealed class DesktopShortcutItem
+	{
+		public string Id { get; set; } = "";
+		public int Index { get; set; }
+		public string Label { get; set; } = "";
+		public string Icon { get; set; } = "";
+		public string? AppId { get; set; }
+		public string? VirtualPath { get; set; }
+		public bool IsDirectory { get; set; }
+		public bool CanRename { get; set; }
+		public bool CanDelete { get; set; }
+		public bool CanRestore { get; set; }
 	}
 }

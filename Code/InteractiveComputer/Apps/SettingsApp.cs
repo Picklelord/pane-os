@@ -50,6 +50,7 @@ public sealed class SettingsPanel : Panel
 		BuildHardwareSection();
 		BuildWallpaperSection();
 		BuildBrowserSection();
+		BuildSystemSection();
 		BuildAppsSection();
 	}
 
@@ -104,6 +105,15 @@ public sealed class SettingsPanel : Panel
 						context.Runtime.InstallApp( app.Id );
 				}) );
 		}
+	}
+
+	private void BuildSystemSection()
+	{
+		var section = CreateSection( "System" );
+		CreateSettingRow( section, "PaneOS maintenance and install flows",
+			("Check Updates", () => context.Runtime.RunSystemUpdateScan()),
+			("Install Codec", () => context.Runtime.RunPackageInstall( "Media Codec Pack" )),
+			("Install Tools", () => context.Runtime.RunPackageInstall( "Gamer Tools" )) );
 	}
 
 	private Panel CreateSection( string title )
