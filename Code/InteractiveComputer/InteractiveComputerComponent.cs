@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using System.Text.Json;
+using PaneOS.InteractiveComputer.Core;
 using Sandbox;
 
 namespace PaneOS.InteractiveComputer;
@@ -15,12 +17,21 @@ public sealed class InteractiveComputerComponent : Component
 	[Property] public int ResolutionX { get; set; } = 1024;
 	[Property] public int ResolutionY { get; set; } = 768;
 	[Property] public bool StartsSleeping { get; set; }
+	[Property] public float RamGb { get; set; } = 2f;
+	[Property] public float CpuCoreGhz { get; set; } = 3.7f;
+	[Property] public int CpuCoreCount { get; set; } = 4;
+	[Property] public float HddStorageGb { get; set; } = 256f;
+	[Property] public float InternetSpeedGbps { get; set; } = 100f;
+	[Property] public float GpuCoreGhz { get; set; } = 1.54f;
+	[Property] public float GpuVramGb { get; set; } = 4f;
+	[Property] public bool SimulateCpuInputDelayWhenMaxed { get; set; } = true;
 	[Property] public bool ScreenSaverEnabled { get; set; } = true;
 	[Property] public float ScreenSaverDelaySeconds { get; set; } = 60f;
 	[Property] public Vector2 ScreenSaverLogoSize { get; set; } = new( 220f, 72f );
 	[Property] public Vector2 ScreenSaverVelocity { get; set; } = new( 160f, -120f );
 	[Property] public bool InstallAllAppsWhenListIsEmpty { get; set; } = true;
 	[Property, TextArea] public string InstalledAppIds { get; set; } = "";
+	[Property] public string ExplorerArchivePath { get; set; } = "";
 	[Property, TextArea] public string SavedStateJson { get; set; } = "";
 
 	public ComputerRuntime Runtime { get; private set; } = null!;
@@ -44,6 +55,7 @@ public sealed class InteractiveComputerComponent : Component
 	protected override void OnUpdate()
 	{
 		Runtime?.TickScreenSaver( Time.Delta, IsPlayerInteracting );
+		Runtime?.TickSystem( Time.Delta );
 
 		if ( IsPlayerInteracting && Input.Pressed( "escape" ) )
 			EndInteraction();
@@ -122,6 +134,41 @@ public sealed class InteractiveComputerComponent : Component
 		SavedStateJson = ExportStateJson();
 	}
 
+	public string ReadArchiveTextFile( string virtualPath )
+	{
+		EnsureArchiveReady();
+		return PaneArchiveFileSystem.ReadTextFile( ResolveArchivePath(), ParseVirtualPath( virtualPath ) );
+	}
+
+	public void WriteArchiveTextFile( string virtualPath, string content )
+	{
+		EnsureArchiveReady();
+		PaneArchiveFileSystem.WriteTextFile( ResolveArchivePath(), ParseVirtualPath( virtualPath ), content );
+		Runtime?.RefreshTransientUi();
+	}
+
+	public IReadOnlyList<string> ListArchiveItems( string virtualPath )
+	{
+		EnsureArchiveReady();
+		return PaneArchiveFileSystem.GetItems( ResolveArchivePath(), ParseVirtualPath( virtualPath ) )
+			.Select( x => x.VirtualPath )
+			.ToArray();
+	}
+
+	public void CreateArchiveFolder( string parentVirtualPath, string folderName )
+	{
+		EnsureArchiveReady();
+		PaneArchiveFileSystem.CreateFolder( ResolveArchivePath(), ParseVirtualPath( parentVirtualPath ), folderName );
+		Runtime?.RefreshTransientUi();
+	}
+
+	public void CreateArchiveFile( string parentVirtualPath, string fileName, string extension, string content = "" )
+	{
+		EnsureArchiveReady();
+		PaneArchiveFileSystem.CreateFile( ResolveArchivePath(), ParseVirtualPath( parentVirtualPath ), fileName, extension, content );
+		Runtime?.RefreshTransientUi();
+	}
+
 	private ComputerState LoadState()
 	{
 		if ( statesByComputerId.TryGetValue( ComputerId, out var existingState ) )
@@ -173,6 +220,69 @@ public sealed class InteractiveComputerComponent : Component
 		StoreState();
 	}
 
+	internal string ResolveSteamDisplayName()
+	{
+		var name = InteractingPlayer?.Name;
+		if ( string.IsNullOrWhiteSpace( name ) )
+			return "Player";
+
+		const string playerPrefix = "Player - ";
+		if ( name.StartsWith( playerPrefix, StringComparison.OrdinalIgnoreCase ) )
+			return name[playerPrefix.Length..];
+
+		return name;
+	}
+
+	internal string ResolvePersistentArchiveUserName( ComputerState state )
+	{
+		if ( !string.IsNullOrWhiteSpace( state.ArchiveUserName ) )
+			return state.ArchiveUserName;
+
+		var archiveUserNamePath = ResolveArchiveUserNamePath();
+		if ( File.Exists( archiveUserNamePath ) )
+		{
+			var persistedValue = PaneArchiveFileSystem.NormalizeDisplayName( File.ReadAllText( archiveUserNamePath ).Trim() );
+			if ( !string.IsNullOrWhiteSpace( persistedValue ) )
+			{
+				state.ArchiveUserName = persistedValue;
+				StoreState();
+				return state.ArchiveUserName;
+			}
+		}
+
+		state.ArchiveUserName = ComputerArchiveUserPolicy.ResolveInitialUserName(
+			ResolveSteamDisplayName(),
+			Environment.GetEnvironmentVariable( "USERNAME" ) );
+
+		var directory = Path.GetDirectoryName( archiveUserNamePath );
+		if ( !string.IsNullOrWhiteSpace( directory ) )
+			Directory.CreateDirectory( directory );
+
+		File.WriteAllText( archiveUserNamePath, state.ArchiveUserName );
+		StoreState();
+		return state.ArchiveUserName;
+	}
+
+	internal string ResolveArchivePath()
+	{
+		if ( !string.IsNullOrWhiteSpace( ExplorerArchivePath ) )
+			return ExplorerArchivePath;
+
+		var basePath = Path.Combine(
+			Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData ),
+			"PaneOS",
+			"Saves" );
+
+		return Path.Combine( basePath, $"{ComputerId}.datc" );
+	}
+
+	internal string ResolveArchiveUserNamePath()
+	{
+		var archivePath = ResolveArchivePath();
+		var directory = Path.GetDirectoryName( archivePath ) ?? ".";
+		return Path.Combine( directory, "paneos-user.txt" );
+	}
+
 	private void ApplyCreationAppList( ComputerState state, bool loadedFromSavedState )
 	{
 		if ( loadedFromSavedState && state.InstalledApps.Count > 0 )
@@ -207,6 +317,8 @@ public sealed class InteractiveComputerComponent : Component
 
 	private void ApplyCreationScreenSaverSettings( ComputerState state, bool loadedFromSavedState )
 	{
+		ApplyHardwareSettings( state );
+
 		if ( loadedFromSavedState )
 		{
 			state.ScreenSaver.DelaySeconds = MathF.Max( 1f, state.ScreenSaver.DelaySeconds );
@@ -225,6 +337,18 @@ public sealed class InteractiveComputerComponent : Component
 		state.ScreenSaver.LogoY = MathF.Max( 0f, (state.ResolutionY - state.ScreenSaver.LogoHeight) * 0.5f );
 	}
 
+	private void ApplyHardwareSettings( ComputerState state )
+	{
+		state.Hardware.RamGb = MathF.Max( 0.25f, RamGb );
+		state.Hardware.CpuCoreGhz = MathF.Max( 0.1f, CpuCoreGhz );
+		state.Hardware.CpuCoreCount = Math.Max( 1, CpuCoreCount );
+		state.Hardware.HddStorageGb = MathF.Max( 1f, HddStorageGb );
+		state.Hardware.InternetSpeedGbps = MathF.Max( 0.1f, InternetSpeedGbps );
+		state.Hardware.GpuCoreGhz = MathF.Max( 0.1f, GpuCoreGhz );
+		state.Hardware.GpuVramGb = MathF.Max( 0.25f, GpuVramGb );
+		state.Hardware.SimulateCpuInputDelayWhenMaxed = SimulateCpuInputDelayWhenMaxed;
+	}
+
 	private List<string> ParseInstalledAppIds()
 	{
 		return InstalledAppIds
@@ -237,4 +361,17 @@ public sealed class InteractiveComputerComponent : Component
 	{
 		WriteIndented = true
 	};
+
+	private void EnsureArchiveReady()
+	{
+		PaneArchiveFileSystem.EnsureArchive( ResolveArchivePath(), ResolvePersistentArchiveUserName( Runtime?.State ?? LoadState() ), Runtime?.Apps ?? ComputerAppRegistry.Apps );
+	}
+
+	private static IReadOnlyList<string> ParseVirtualPath( string virtualPath )
+	{
+		return virtualPath
+			.Trim()
+			.TrimStart( '/' )
+			.Split( '/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries );
+	}
 }

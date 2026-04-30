@@ -1,6 +1,7 @@
 @namespace PaneOS.InteractiveComputer
 @using System
 @using PaneOS.InteractiveComputer
+@using PaneOS.InteractiveComputer.Core
 @using Sandbox
 @using Sandbox.UI
 @inherits PanelComponent
@@ -11,7 +12,7 @@
 }
 
 <root class="computer-root @(Runtime.State.IsSleeping ? "is-sleeping" : "") @(!ShouldShowDesktop ? "is-hidden" : "")"
-	  style="width: @(Runtime.State.ResolutionX)px; height: @(Runtime.State.ResolutionY)px;">
+	  style="width: @(Runtime.State.ResolutionX)px; height: @(Runtime.State.ResolutionY)px; @GetDesktopBackgroundStyle()">
 	@if ( ShouldShowDesktop )
 	{
 		<div class="desktop" onclick="@CloseStartMenu">
@@ -25,24 +26,60 @@
 					</div>
 				</div>
 			}
+			else if ( Runtime.State.BootSplashSecondsRemaining > 0f )
+			{
+				<div class="boot-overlay">
+					<div class="boot-card">
+						<div class="sleep-logo">e</div>
+						<label>PaneOS</label>
+						<span>Starting up...</span>
+					</div>
+				</div>
+			}
+			else if ( Runtime.State.IsLocked )
+			{
+				<div class="sleep-overlay" onclick="@Unlock">
+					<div class="sleep-card">
+						<div class="sleep-logo">e</div>
+						<label>PaneOS Locked</label>
+						<span>Click to unlock</span>
+					</div>
+				</div>
+			}
 			else
 			{
 				<div class="shortcut-grid">
 					@foreach ( var app in Runtime.Apps )
 					{
+						if ( !app.ShowOnDesktop )
+							continue;
+
 						<div class="desktop-shortcut" onclick="@(() => OpenApp( app.Id ))">
 							<div class="desktop-icon">@app.Icon</div>
 							<label>@app.Title</label>
+						</div>
+					}
+
+					<div class="desktop-shortcut" ondblclick="@OpenRecycleBin">
+						<div class="desktop-icon">RB</div>
+						<label>Recycle Bin</label>
+					</div>
+
+					@foreach ( var item in GetDesktopDocumentItems() )
+					{
+						<div class="desktop-shortcut" ondblclick="@(() => OpenDesktopDocument( item.VirtualPath ))">
+							<div class="desktop-icon">@(item.IsDirectory ? "FD" : "FI")</div>
+							<label>@item.Name</label>
 						</div>
 					}
 				</div>
 
 				@foreach ( var app in Runtime.OpenApps )
 				{
-					if ( app.State.IsMinimized )
+					if ( !app.Descriptor.HasWindow || app.State.IsMinimized )
 						continue;
 
-					<div class="xp-window @(Runtime.FocusedApp == app ? "focused" : "")"
+					<div class="xp-window @(Runtime.FocusedApp == app ? "focused" : "") @(Runtime.GetEffectiveStatus( app.State.InstanceId ) == ComputerProcessStatus.NotResponding ? "not-responding" : "")"
 						 style="left: @(app.State.X)px; top: @(app.State.Y)px; width: @(app.State.Width)px; height: @(app.State.Height)px; z-index: @(app.State.ZIndex);"
 						 onclick="@(() => Focus( app.State.InstanceId ))">
 						<div class="title-bar">
@@ -62,6 +99,12 @@
 							</div>
 						</div>
 						<ComputerAppHost Instance=@app />
+						@if ( Runtime.ShouldBlockInput( app.State.InstanceId ) )
+						{
+							<div class="window-input-overlay">
+								<label>PaneOS is busy...</label>
+							</div>
+						}
 					</div>
 				}
 			}
@@ -77,6 +120,9 @@
 				<div class="start-apps">
 					@foreach ( var app in Runtime.Apps )
 					{
+						if ( !app.ShowInStartMenu )
+							continue;
+
 						<div class="start-app" onclick="@(() => OpenApp( app.Id ))">
 							<span>@app.Icon</span>
 							<label>@app.Title</label>
@@ -84,6 +130,7 @@
 					}
 				</div>
 				<div class="start-power">
+					<button onclick="@Lock">Lock</button>
 					<button onclick="@Restart">Restart</button>
 					<button onclick="@Sleep">Sleep</button>
 				</div>
@@ -98,6 +145,9 @@
 			<div class="task-list">
 				@foreach ( var app in Runtime.OpenApps )
 				{
+					if ( !app.Descriptor.ShowInTaskbar || !app.Descriptor.HasWindow )
+						continue;
+
 					<button class="task-button @(Runtime.FocusedApp == app && !app.State.IsMinimized ? "active" : "")"
 							onclick="@(() => ToggleTaskbarApp( app.State.InstanceId ))">
 						<span>@app.State.Icon</span>
@@ -106,9 +156,99 @@
 				}
 			</div>
 			<div class="tray">
+				<span>NET</span>
+				<span>VOL</span>
 				<label>@System.DateTime.Now.ToString( "h:mm tt" )</label>
 			</div>
 		</div>
+
+		@if ( Runtime.Notifications.Count > 0 )
+		{
+			<div class="notification-stack">
+				@foreach ( var notification in Runtime.Notifications )
+				{
+					<div class="notification-card">
+						<div class="notification-icon">@notification.Icon</div>
+						<div class="notification-copy">
+							<label>@notification.Title</label>
+							<span>@notification.Message</span>
+						</div>
+					</div>
+				}
+			</div>
+		}
+
+		@if ( Runtime.ActiveMessageBox is not null )
+		{
+			var messageBox = Runtime.ActiveMessageBox;
+			<div class="message-box-overlay">
+				<div class="message-box-window">
+					<div class="message-box-title-bar">
+						<label>@messageBox.Options.Title</label>
+					</div>
+					<div class="message-box-body">
+						<div class="message-box-icon">@messageBox.Options.Icon</div>
+						<div class="message-box-copy">
+							<label>@messageBox.Options.Message</label>
+							@if ( messageBox.Options.HasTextInput )
+							{
+								<input class="message-box-input"
+									   @bind="Runtime.ActiveMessageBox.CurrentText"
+									   @bind:event="oninput"
+									   placeholder="@messageBox.Options.TextInputPlaceholder" />
+							}
+						</div>
+					</div>
+					<div class="message-box-actions">
+						@foreach ( var button in messageBox.Options.Buttons )
+						{
+							<button onclick="@(() => CloseMessageBox( button ))">@button</button>
+						}
+					</div>
+				</div>
+			</div>
+		}
+
+		@if ( Runtime.ActiveFileDialog is not null )
+		{
+			var fileDialog = Runtime.ActiveFileDialog;
+			<div class="message-box-overlay">
+				<div class="file-dialog-window">
+					<div class="message-box-title-bar">
+						<label>@fileDialog.Options.Title</label>
+					</div>
+					<div class="file-dialog-toolbar">
+						<button onclick="@FileDialogUp">Up</button>
+						<button onclick="@(() => NavigateFileDialogTo( Computer?.Runtime?.GetDefaultDocumentsPath() ?? "" ))">My Documents</button>
+						<label>@fileDialog.CurrentPathDisplay</label>
+					</div>
+					<div class="file-dialog-list">
+						@foreach ( var item in fileDialog.VisibleItems )
+						{
+							<div class="file-dialog-row @(string.Equals( fileDialog.SelectedVirtualPath, item.VirtualPath, StringComparison.OrdinalIgnoreCase ) ? "selected" : "")"
+								 onclick="@(() => SelectFileDialogItem( item.VirtualPath ))"
+								 ondblclick="@(() => ActivateFileDialogItem( item.VirtualPath ))">
+								<label>@item.Name</label>
+								<span>@(item.IsDirectory ? "Folder" : item.Extension)</span>
+							</div>
+						}
+					</div>
+					@if ( fileDialog.Options.Mode == ComputerFileDialogMode.Save )
+					{
+						<div class="file-dialog-name-row">
+							<label>File name</label>
+							<input class="message-box-input"
+								   @bind="Runtime.ActiveFileDialog.CurrentFileName"
+								   @bind:event="oninput" />
+						</div>
+					}
+					<div class="message-box-actions">
+						<button onclick="@ConfirmFileDialog">@(fileDialog.Options.ConfirmButtonText == "" ? (fileDialog.Options.Mode == ComputerFileDialogMode.Open ? "Open" : "Save") : fileDialog.Options.ConfirmButtonText)</button>
+						<button onclick="@CancelFileDialog">Cancel</button>
+					</div>
+				</div>
+			</div>
+		}
 
 		@if ( Runtime.IsScreenSaverActive && !Computer.IsPlayerInteracting )
 		{
@@ -147,7 +287,7 @@
 		{
 			var hash = 17;
 			hash = hash * 31 + ((Computer?.IsPlayerInteracting ?? false) ? 1 : 0);
-			hash = hash * 31 + (Runtime?.Version ?? 0);
+			hash = hash * 31 + (Runtime?.DesktopVersion ?? 0);
 			hash = hash * 31 + ((Runtime?.State.ScreenSaver.IsActive ?? false) ? 1 : 0);
 			hash = hash * 31 + System.DateTime.Now.Minute;
 			return hash;
@@ -177,6 +317,21 @@
 	private void OpenApp( string appId )
 	{
 		Runtime?.OpenApp( appId );
+		StateHasChanged();
+	}
+
+	private void OpenRecycleBin()
+	{
+		Runtime?.OpenApp( "system.paneexplorer", new Dictionary<string, string>
+		{
+			["path"] = "/C:/Recycle Bin"
+		} );
+		StateHasChanged();
+	}
+
+	private void OpenDesktopDocument( string virtualPath )
+	{
+		Runtime?.OpenVirtualPath( virtualPath );
 		StateHasChanged();
 	}
 
@@ -246,9 +401,63 @@
 		StateHasChanged();
 	}
 
+	private void Lock()
+	{
+		Runtime?.Lock();
+		StateHasChanged();
+	}
+
+	private void Unlock()
+	{
+		Runtime?.Unlock();
+		StateHasChanged();
+	}
+
 	private void ScreenSaverActivity()
 	{
 		Runtime?.NotifyUserActivity();
+		StateHasChanged();
+	}
+
+	private void CloseMessageBox( string button )
+	{
+		Runtime?.CloseMessageBox( button );
+		StateHasChanged();
+	}
+
+	private void NavigateFileDialogTo( string virtualPath )
+	{
+		Runtime?.NavigateFileDialogTo( virtualPath );
+		StateHasChanged();
+	}
+
+	private void FileDialogUp()
+	{
+		Runtime?.MoveFileDialogUp();
+		StateHasChanged();
+	}
+
+	private void SelectFileDialogItem( string virtualPath )
+	{
+		Runtime?.SelectFileDialogItem( virtualPath );
+		StateHasChanged();
+	}
+
+	private void ActivateFileDialogItem( string virtualPath )
+	{
+		Runtime?.ActivateFileDialogItem( virtualPath );
+		StateHasChanged();
+	}
+
+	private void ConfirmFileDialog()
+	{
+		Runtime?.ConfirmFileDialog();
+		StateHasChanged();
+	}
+
+	private void CancelFileDialog()
+	{
+		Runtime?.CancelFileDialog();
 		StateHasChanged();
 	}
 
@@ -256,7 +465,7 @@
 	{
 		base.OnMouseDown( e );
 
-		if ( !ShouldShowDesktop || Runtime is null || Runtime.State.IsSleeping )
+		if ( !ShouldShowDesktop || Runtime is null || Runtime.State.IsSleeping || Runtime.ActiveMessageBox is not null || Runtime.IsInputDelayed )
 			return;
 
 		var dragCandidate = FindDragCandidate();
@@ -341,5 +550,24 @@
 			return Vector2.Zero;
 
 		return Mouse.Position - new Vector2( Panel.Box.Left, Panel.Box.Top );
+	}
+
+	private string GetDesktopBackgroundStyle()
+	{
+		return Runtime is null
+			? ""
+			: ComputerWallpaperPolicy.GetBackgroundStyle( Runtime.State.DesktopWallpaper );
+	}
+
+	private IReadOnlyList<PaneArchiveItem> GetDesktopDocumentItems()
+	{
+		if ( Runtime is null )
+			return Array.Empty<PaneArchiveItem>();
+
+		return PaneArchiveFileSystem.GetItems(
+			Runtime.GetArchivePath(),
+			Runtime.GetDefaultDocumentsPath()
+				.TrimStart( '/' )
+				.Split( '/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries ) );
 	}
 }

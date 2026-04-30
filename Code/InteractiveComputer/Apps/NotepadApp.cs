@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Sandbox.UI;
 using PaneOS.InteractiveComputer;
 
@@ -22,6 +24,7 @@ public sealed class NotepadPanel : Panel
 {
 	private readonly ComputerAppContext context;
 	private readonly TextEntry textEntry;
+	private string currentFilePath;
 
 	public NotepadPanel( ComputerAppContext context )
 	{
@@ -30,17 +33,28 @@ public sealed class NotepadPanel : Panel
 
 		var toolbar = new Panel { Parent = this };
 		toolbar.AddClass( "notepad-toolbar" );
-		new Label( "File" ) { Parent = toolbar };
-		new Label( "Edit" ) { Parent = toolbar };
-		new Label( "Format" ) { Parent = toolbar };
-		new Label( "Help" ) { Parent = toolbar };
 
-		textEntry = new TextEntry
+		var openButton = new Button( "Open" ) { Parent = toolbar };
+		openButton.AddClass( "notepad-toolbar-button" );
+		openButton.AddEventListener( "onclick", OpenFile );
+
+		var saveButton = new Button( "Save" ) { Parent = toolbar };
+		saveButton.AddClass( "notepad-toolbar-button" );
+		saveButton.AddEventListener( "onclick", SaveFile );
+
+		var saveAsButton = new Button( "Save As" ) { Parent = toolbar };
+		saveAsButton.AddClass( "notepad-toolbar-button" );
+		saveAsButton.AddEventListener( "onclick", SaveFileAs );
+
+		textEntry = new ComputerInputAwareTextEntry( () => context.Runtime.ShouldBlockInput( context.State.InstanceId ) )
 		{
 			Parent = this,
-			Text = context.LoadValue( "text" ) ?? "This note is saved in the app state between computer interactions."
+			Text = "",
+			Multiline = true,
+			Placeholder = ""
 		};
 		textEntry.AddClass( "notepad-text" );
+		LoadInitialDocument();
 	}
 
 	public override void Tick()
@@ -51,5 +65,80 @@ public sealed class NotepadPanel : Panel
 			return;
 
 		context.SaveValue( "text", textEntry.Text );
+	}
+
+	private void LoadInitialDocument()
+	{
+		currentFilePath = context.LoadValue( "file_path" ) ?? "";
+		textEntry.Text = string.IsNullOrWhiteSpace( currentFilePath )
+			? context.LoadValue( "text" ) ?? ""
+			: context.ReadTextFile( currentFilePath );
+		textEntry.CaretPosition = textEntry.TextLength;
+		textEntry.Focus();
+	}
+
+	private void OpenFile()
+	{
+		context.ShowOpenFileDialog(
+			new ComputerFileDialogOptions
+			{
+				Title = "Open Text File",
+				InitialPath = context.GetDefaultDocumentsPath(),
+				AllowedExtensions = new[] { "txt" },
+				ConfirmButtonText = "Open"
+			},
+			result =>
+			{
+				if ( !result.Confirmed )
+					return;
+
+				currentFilePath = result.VirtualPath;
+				context.SaveValue( "file_path", currentFilePath );
+				textEntry.Text = context.ReadTextFile( currentFilePath );
+				textEntry.CaretPosition = textEntry.TextLength;
+				textEntry.Focus();
+			} );
+	}
+
+	private void SaveFile()
+	{
+		if ( string.IsNullOrWhiteSpace( currentFilePath ) )
+		{
+			SaveFileAs();
+			return;
+		}
+
+		context.WriteTextFile( currentFilePath, textEntry.Text );
+		context.SaveValue( "file_path", currentFilePath );
+	}
+
+	private void SaveFileAs()
+	{
+		context.ShowSaveFileDialog(
+			new ComputerFileDialogOptions
+			{
+				Title = "Save Text File",
+				InitialPath = context.GetDefaultDocumentsPath(),
+				DefaultFileName = string.IsNullOrWhiteSpace( currentFilePath ) ? "Untitled.txt" : currentFilePath.Split( '/' ).Last(),
+				AllowedExtensions = new[] { "txt" },
+				ConfirmButtonText = "Save"
+			},
+			result =>
+			{
+				if ( !result.Confirmed )
+					return;
+
+				currentFilePath = EnsureTxtExtension( result.VirtualPath );
+				context.WriteTextFile( currentFilePath, textEntry.Text );
+				context.SaveValue( "file_path", currentFilePath );
+				textEntry.Focus();
+			} );
+	}
+
+	private static string EnsureTxtExtension( string virtualPath )
+	{
+		return virtualPath.EndsWith( ".txt", StringComparison.OrdinalIgnoreCase )
+			? virtualPath
+			: $"{virtualPath}.txt";
 	}
 }

@@ -7,7 +7,17 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Code\InteractiveComputer\ComputerState.cs" Link="PaneOS\ComputerState.cs" />
+    <Compile Include="..\Code\InteractiveComputer\ComputerRuntimeModels.cs" Link="PaneOS\ComputerRuntimeModels.cs" />
+    <Compile Include="..\Code\InteractiveComputer\ComputerAppDescriptor.cs" Link="PaneOS\ComputerAppDescriptor.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\ComputerArchiveUserPolicy.cs" Link="PaneOS\ComputerArchiveUserPolicy.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\ComputerFileAssociationPolicy.cs" Link="PaneOS\ComputerFileAssociationPolicy.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\ComputerFileDialogPolicy.cs" Link="PaneOS\ComputerFileDialogPolicy.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\ComputerInputDelayPolicy.cs" Link="PaneOS\ComputerInputDelayPolicy.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\ComputerWallpaperPolicy.cs" Link="PaneOS\ComputerWallpaperPolicy.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\PaneArchiveFileSystem.cs" Link="PaneOS\PaneArchiveFileSystem.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\RidgeBrowserPolicy.cs" Link="PaneOS\RidgeBrowserPolicy.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\ScreenSaverSimulator.cs" Link="PaneOS\ScreenSaverSimulator.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\TaskManagerRefreshPolicy.cs" Link="PaneOS\TaskManagerRefreshPolicy.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\TaskManagerProcessSortPolicy.cs" Link="PaneOS\TaskManagerProcessSortPolicy.cs" />
   </ItemGroup>
 </Project>

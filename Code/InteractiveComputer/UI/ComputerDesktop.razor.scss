@@ -100,6 +100,11 @@
 	border-left-color: #2f8cff;
 }
 
+.xp-window.not-responding {
+	filter: grayscale(0.65);
+	opacity: 0.86;
+}
+
 .title-bar {
 	height: 29px;
 	flex-shrink: 0;
@@ -154,6 +159,20 @@
 	overflow: hidden;
 	background-color: #fff;
 	border: 1px solid #7f9db9;
+}
+
+.window-input-overlay {
+	position: absolute;
+	left: 3px;
+	right: 3px;
+	top: 31px;
+	bottom: 3px;
+	align-items: center;
+	justify-content: center;
+	background: rgba(238, 240, 244, 0.52);
+	color: #2f4977;
+	font-weight: 700;
+	z-index: 3;
 }
 
 .taskbar {
@@ -233,6 +252,7 @@
 	height: 100%;
 	align-items: center;
 	justify-content: center;
+	gap: 6px;
 	background: linear-gradient(180deg, #20a8e9, #0d73bc);
 	border-left: 1px solid rgba(255, 255, 255, 0.45);
 	font-size: 12px;
@@ -364,6 +384,30 @@
 	color: #b8d7ff;
 }
 
+.boot-overlay {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	align-items: center;
+	justify-content: center;
+	background: radial-gradient(circle at center, #214c8b 0%, #0a1325 72%);
+	color: white;
+	z-index: 22000;
+}
+
+.boot-card {
+	width: 290px;
+	height: 150px;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	background: rgba(6, 14, 28, 0.38);
+}
+
 .screen-saver {
 	position: absolute;
 	left: 0;
@@ -379,4 +423,196 @@
 .screen-saver-logo {
 	position: absolute;
 	object-fit: contain;
+}
+
+.message-box-overlay {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 32px;
+	align-items: center;
+	justify-content: center;
+	background: rgba(17, 24, 38, 0.35);
+	z-index: 25000;
+}
+
+.notification-stack {
+	position: absolute;
+	right: 12px;
+	top: 12px;
+	width: 260px;
+	flex-direction: column;
+	gap: 8px;
+	z-index: 24000;
+}
+
+.notification-card {
+	min-height: 64px;
+	padding: 10px;
+	gap: 10px;
+	border: 1px solid #8ca7d7;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(232, 240, 255, 0.96));
+	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.notification-icon {
+	width: 28px;
+	height: 28px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid #97abd4;
+	background: linear-gradient(180deg, #ffffff, #dce6ff);
+	color: #1c3d7b;
+	font-weight: 700;
+}
+
+.notification-copy {
+	flex-grow: 1;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.notification-copy label {
+	font-weight: 700;
+	color: #284a82;
+}
+
+.notification-copy span {
+	color: #30425e;
+	font-size: 12px;
+}
+
+.message-box-window {
+	width: 410px;
+	min-height: 190px;
+	flex-direction: column;
+	border: 2px solid #2256aa;
+	background: #ece9d8;
+	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.file-dialog-window {
+	width: 520px;
+	height: 420px;
+	flex-direction: column;
+	border: 2px solid #2256aa;
+	background: #ece9d8;
+	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.file-dialog-toolbar {
+	height: 34px;
+	align-items: center;
+	gap: 8px;
+	padding: 0 8px;
+	background: linear-gradient(180deg, #f8f7f1, #d7d0bd);
+	border-bottom: 1px solid #b9b19d;
+}
+
+.file-dialog-toolbar button {
+	height: 24px;
+	padding: 0 10px;
+	border: 1px solid #7c7c7c;
+	background: linear-gradient(180deg, #ffffff, #d8d2bd);
+	color: #111;
+}
+
+.file-dialog-toolbar label {
+	color: #284a82;
+	font-weight: 700;
+}
+
+.file-dialog-list {
+	flex-grow: 1;
+	flex-direction: column;
+	overflow: auto;
+	background: #ffffff;
+}
+
+.file-dialog-row {
+	height: 28px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 10px;
+	border-top: 1px solid #edf1f7;
+}
+
+.file-dialog-row.selected {
+	background: #dce9ff;
+}
+
+.file-dialog-name-row {
+	height: 40px;
+	align-items: center;
+	gap: 8px;
+	padding: 0 12px;
+	background: #f6f2e7;
+	border-top: 1px solid #d5ccb6;
+}
+
+.file-dialog-name-row label {
+	width: 68px;
+	color: #284a82;
+}
+
+.message-box-title-bar {
+	height: 29px;
+	align-items: center;
+	padding: 0 10px;
+	background: linear-gradient(90deg, #0d3a95, #2f87ff 58%, #54a3ff);
+	color: #ffffff;
+	font-weight: 700;
+}
+
+.message-box-body {
+	flex-grow: 1;
+	padding: 16px;
+	gap: 14px;
+}
+
+.message-box-icon {
+	width: 38px;
+	height: 38px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid #97abd4;
+	background: linear-gradient(180deg, #ffffff, #dce6ff);
+	color: #1c3d7b;
+	font-size: 20px;
+	font-weight: 700;
+}
+
+.message-box-copy {
+	flex-grow: 1;
+	flex-direction: column;
+	gap: 10px;
+	color: #111;
+}
+
+.message-box-input {
+	height: 28px;
+	padding: 0 8px;
+	border: 1px solid #7f9db9;
+	background: #ffffff;
+	color: #111;
+}
+
+.message-box-actions {
+	height: 44px;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 0 12px;
+	background: linear-gradient(180deg, #f4f2e8, #e0d8c1);
+	border-top: 1px solid #b6b09e;
+}
+
+.message-box-actions button {
+	height: 26px;
+	min-width: 78px;
+	padding: 0 12px;
+	border: 1px solid #7c7c7c;
+	background: linear-gradient(180deg, #ffffff, #d8d2bd);
+	color: #111;
 }

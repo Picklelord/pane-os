@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Sandbox.UI;
 
 namespace PaneOS.InteractiveComputer;
@@ -43,6 +44,72 @@ public sealed class ComputerAppContext
 	public string? LoadSetting( string key )
 	{
 		return InstalledApp.Settings.TryGetValue( key, out var value ) ? value : null;
+	}
+
+	public void SetStatus( ComputerProcessStatus status )
+	{
+		Runtime.SetStatus( State.InstanceId, status );
+	}
+
+	public ComputerProcessStatus GetStatus()
+	{
+		return Runtime.GetEffectiveStatus( State.InstanceId );
+	}
+
+	public ComputerProcessMetrics GetProcessMetrics()
+	{
+		return Runtime.GetProcessMetrics( State.InstanceId );
+	}
+
+	public ComputerActiveMessageBox ShowMessageBox( ComputerMessageBoxOptions options, Action<ComputerMessageBoxResult>? onClosed = null )
+	{
+		return Runtime.ShowMessageBox( options, onClosed );
+	}
+
+	public ComputerActiveFileDialog ShowOpenFileDialog( ComputerFileDialogOptions options, Action<ComputerFileDialogResult>? onClosed = null )
+	{
+		options.Mode = ComputerFileDialogMode.Open;
+		return Runtime.ShowFileDialog( options, onClosed );
+	}
+
+	public ComputerActiveFileDialog ShowSaveFileDialog( ComputerFileDialogOptions options, Action<ComputerFileDialogResult>? onClosed = null )
+	{
+		options.Mode = ComputerFileDialogMode.Save;
+		return Runtime.ShowFileDialog( options, onClosed );
+	}
+
+	public string GetDefaultDocumentsPath()
+	{
+		return Runtime.GetDefaultDocumentsPath();
+	}
+
+	public string GetArchivePath()
+	{
+		return Runtime.GetArchivePath();
+	}
+
+	public string ReadTextFile( string virtualPath )
+	{
+		return PaneOS.InteractiveComputer.Core.PaneArchiveFileSystem.ReadTextFile( Runtime.GetArchivePath(), ParseVirtualPath( virtualPath ) );
+	}
+
+	public void WriteTextFile( string virtualPath, string content )
+	{
+		PaneOS.InteractiveComputer.Core.PaneArchiveFileSystem.WriteTextFile( Runtime.GetArchivePath(), ParseVirtualPath( virtualPath ), content );
+		Runtime.RefreshTransientUi();
+	}
+
+	public bool OpenVirtualPath( string virtualPath )
+	{
+		return Runtime.OpenVirtualPath( virtualPath );
+	}
+
+	private static IReadOnlyList<string> ParseVirtualPath( string virtualPath )
+	{
+		return virtualPath
+			.Trim()
+			.TrimStart( '/' )
+			.Split( '/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries );
 	}
 }
 

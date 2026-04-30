@@ -16,6 +16,19 @@ var tests = new (string Name, Action Body)[]
 	("Screensaver bounces off right edge toward left", ScreenSaverBouncesRight),
 	("Screensaver bounces off bottom edge toward top", ScreenSaverBouncesBottom),
 	("Screensaver bounces off left edge toward right", ScreenSaverBouncesLeft),
+	("CPU input delay suppresses only the focused app", CpuDelaySuppressesFocusedAppOnly),
+	("Task Manager refresh policy scopes updates by visible tab", TaskManagerRefreshPolicyScopesByTab),
+	("Task Manager process sorting prefers highest CPU first", TaskManagerSortingUsesSelectedField),
+	("Archive user policy prefers Steam name and falls back to USERNAME", ArchiveUserPolicyPrefersSteamThenUsername),
+	("Archive ensure migrates legacy Player folder to persisted username", ArchiveMigratesLegacyPlayerFolder),
+	("File dialog policy normalizes extension filters", FileDialogPolicyNormalizesExtensions),
+	("File dialog policy resolves save paths in current folder", FileDialogPolicyResolvesSavePath),
+	("Wallpaper policy normalizes known wallpapers", WallpaperPolicyNormalizesKnownValues),
+	("Archive text files round-trip through My Documents", ArchiveTextFilesRoundTrip),
+	("Archive rename updates file names in place", ArchiveRenameMovesEntries),
+	("File associations open text files in Notepad", FileAssociationsOpenTextFiles),
+	("File associations open url files in Ridge", FileAssociationsOpenUrlFiles),
+	("File associations launch executables by resolved name", FileAssociationsLaunchExecutables),
 	("Computer state defaults include screensaver and app lists", ComputerStateDefaults),
 };
 
@@ -160,6 +173,218 @@ static void ScreenSaverBouncesLeft()
 	True( state.ScreenSaver.VelocityX > 0f );
 }
 
+static void CpuDelaySuppressesFocusedAppOnly()
+{
+	True( ComputerInputDelayPolicy.ShouldSuppressFocusedAppInput( true, true, true ) );
+	False( ComputerInputDelayPolicy.ShouldSuppressFocusedAppInput( false, true, true ) );
+	False( ComputerInputDelayPolicy.ShouldSuppressFocusedAppInput( true, false, true ) );
+	False( ComputerInputDelayPolicy.ShouldSuppressFocusedAppInput( true, true, false ) );
+}
+
+static void TaskManagerRefreshPolicyScopesByTab()
+{
+	var processesA = TaskManagerRefreshPolicy.GetRefreshVersion( TaskManagerTab.Processes, 3, 10, 100 );
+	var processesB = TaskManagerRefreshPolicy.GetRefreshVersion( TaskManagerTab.Processes, 3, 11, 100 );
+	var storageA = TaskManagerRefreshPolicy.GetRefreshVersion( TaskManagerTab.Storage, 3, 10, 100 );
+	var storageB = TaskManagerRefreshPolicy.GetRefreshVersion( TaskManagerTab.Storage, 3, 11, 100 );
+	var storageC = TaskManagerRefreshPolicy.GetRefreshVersion( TaskManagerTab.Storage, 3, 10, 101 );
+
+	NotEqual( processesA, processesB );
+	Equal( storageA, storageB );
+	NotEqual( storageA, storageC );
+}
+
+static void TaskManagerSortingUsesSelectedField()
+{
+	var rows = new[]
+	{
+		new TaskManagerProcessSortItem { InstanceId = "1", ProcessName = "Calculator", CpuPercent = 12f, RamPercent = 10f, Status = "Running", StartupProcess = false },
+		new TaskManagerProcessSortItem { InstanceId = "2", ProcessName = "Networking", CpuPercent = 3f, RamPercent = 22f, Status = "Running", StartupProcess = true },
+		new TaskManagerProcessSortItem { InstanceId = "3", ProcessName = "PaneOS32", CpuPercent = 88f, RamPercent = 18f, Status = "Running", StartupProcess = true }
+	};
+
+	var byCpu = TaskManagerProcessSortPolicy.Sort( rows, TaskManagerProcessSortField.Cpu, true );
+	var byRam = TaskManagerProcessSortPolicy.Sort( rows, TaskManagerProcessSortField.Ram, true );
+
+	Equal( "PaneOS32", byCpu[0].ProcessName );
+	Equal( "Networking", byRam[0].ProcessName );
+}
+
+static void ArchiveUserPolicyPrefersSteamThenUsername()
+{
+	Equal( "Alice", ComputerArchiveUserPolicy.ResolveInitialUserName( "Alice", "WindowsUser" ) );
+	Equal( "WindowsUser", ComputerArchiveUserPolicy.ResolveInitialUserName( "Player", "WindowsUser" ) );
+	Equal( "Player", ComputerArchiveUserPolicy.ResolveInitialUserName( "Player", "" ) );
+}
+
+static void ArchiveMigratesLegacyPlayerFolder()
+{
+	var tempPath = Path.Combine( Path.GetTempPath(), $"paneos-test-{Guid.NewGuid():N}.datc" );
+	try
+	{
+		var apps = Array.Empty<ComputerAppDescriptor>();
+		PaneArchiveFileSystem.EnsureArchive( tempPath, "Player", apps );
+		PaneArchiveFileSystem.CreateFile( tempPath, new[] { "C:", "Users", "Player", "My Documents" }, "Notes", "txt", "hello" );
+
+		PaneArchiveFileSystem.EnsureArchive( tempPath, "WindowsUser", apps );
+
+		var rootUsers = PaneArchiveFileSystem.GetItems( tempPath, new[] { "C:", "Users" } );
+		True( rootUsers.Any( x => x.Name == "WindowsUser" ) );
+		False( rootUsers.Any( x => x.Name == "Player" ) );
+
+		var docs = PaneArchiveFileSystem.GetItems( tempPath, new[] { "C:", "Users", "WindowsUser", "My Documents" } );
+		True( docs.Any( x => x.Name == "Notes.txt" ) );
+	}
+	finally
+	{
+		if ( File.Exists( tempPath ) )
+			File.Delete( tempPath );
+	}
+}
+
+static void FileDialogPolicyNormalizesExtensions()
+{
+	var options = new ComputerFileDialogOptions
+	{
+		AllowedExtensions = new[] { ".txt", "Url" }
+	};
+
+	True( ComputerFileDialogPolicy.AllowsExtension( options, ".TXT" ) );
+	True( ComputerFileDialogPolicy.AllowsExtension( options, "url" ) );
+	False( ComputerFileDialogPolicy.AllowsExtension( options, ".exe" ) );
+}
+
+static void FileDialogPolicyResolvesSavePath()
+{
+	var openOptions = new ComputerFileDialogOptions
+	{
+		Mode = ComputerFileDialogMode.Open
+	};
+	var saveOptions = new ComputerFileDialogOptions
+	{
+		Mode = ComputerFileDialogMode.Save
+	};
+
+	Equal(
+		"/C:/Users/Alice/My Documents/Notes.txt",
+		ComputerFileDialogPolicy.ResolvePath(
+			openOptions,
+			new[] { "C:", "Users", "Alice", "My Documents" },
+			"/C:/Users/Alice/My Documents/Notes.txt",
+			"" ) );
+
+	Equal(
+		"/C:/Users/Alice/My Documents/Todo.txt",
+		ComputerFileDialogPolicy.ResolvePath(
+			saveOptions,
+			new[] { "C:", "Users", "Alice", "My Documents" },
+			"",
+			"Todo.txt" ) );
+
+	Equal(
+		"",
+		ComputerFileDialogPolicy.ResolvePath(
+			saveOptions,
+			new[] { "C:", "Users", "Alice", "My Documents" },
+			"",
+			"   " ) );
+}
+
+static void WallpaperPolicyNormalizesKnownValues()
+{
+	Equal( "blue", ComputerWallpaperPolicy.Normalize( "Blue" ) );
+	Equal( "sunset", ComputerWallpaperPolicy.Normalize( "SUNSET" ) );
+	Equal( "default", ComputerWallpaperPolicy.Normalize( "something-else" ) );
+}
+
+static void ArchiveTextFilesRoundTrip()
+{
+	var tempPath = Path.Combine( Path.GetTempPath(), $"paneos-text-{Guid.NewGuid():N}.datc" );
+	try
+	{
+		PaneArchiveFileSystem.EnsureArchive( tempPath, "Alice", Array.Empty<ComputerAppDescriptor>() );
+		var filePath = new[] { "C:", "Users", "Alice", "My Documents", "Journal.txt" };
+
+		PaneArchiveFileSystem.WriteTextFile( tempPath, filePath, "Day one" );
+		Equal( "Day one", PaneArchiveFileSystem.ReadTextFile( tempPath, filePath ) );
+		True( PaneArchiveFileSystem.Exists( tempPath, filePath ) );
+	}
+	finally
+	{
+		if ( File.Exists( tempPath ) )
+			File.Delete( tempPath );
+	}
+}
+
+static void ArchiveRenameMovesEntries()
+{
+	var tempPath = Path.Combine( Path.GetTempPath(), $"paneos-rename-{Guid.NewGuid():N}.datc" );
+	try
+	{
+		PaneArchiveFileSystem.EnsureArchive( tempPath, "Alice", Array.Empty<ComputerAppDescriptor>() );
+		var originalPath = new[] { "C:", "Users", "Alice", "My Documents", "Notes.txt" };
+		var renamedPath = new[] { "C:", "Users", "Alice", "My Documents", "Todo.txt" };
+		PaneArchiveFileSystem.WriteTextFile( tempPath, originalPath, "todo" );
+
+		PaneArchiveFileSystem.Rename( tempPath, originalPath, "Todo.txt" );
+
+		False( PaneArchiveFileSystem.Exists( tempPath, originalPath ) );
+		True( PaneArchiveFileSystem.Exists( tempPath, renamedPath ) );
+		Equal( "todo", PaneArchiveFileSystem.ReadTextFile( tempPath, renamedPath ) );
+	}
+	finally
+	{
+		if ( File.Exists( tempPath ) )
+			File.Delete( tempPath );
+	}
+}
+
+static void FileAssociationsOpenTextFiles()
+{
+	var target = ComputerFileAssociationPolicy.ResolveLaunchTarget(
+		"/C:/Users/Alice/My Documents/Notes.txt",
+		"Notes.txt",
+		"hello",
+		Array.Empty<ComputerAppDescriptor>() );
+
+	Equal( "system.notepad", target?.AppId );
+	Equal( "/C:/Users/Alice/My Documents/Notes.txt", target?.InitialData["file_path"] );
+}
+
+static void FileAssociationsOpenUrlFiles()
+{
+	var target = ComputerFileAssociationPolicy.ResolveLaunchTarget(
+		"/C:/Users/Alice/My Documents/Search.url",
+		"Search.url",
+		"url=https://example.com",
+		Array.Empty<ComputerAppDescriptor>() );
+
+	Equal( "system.ridge", target?.AppId );
+	Equal( "https://example.com", target?.InitialData["url"] );
+}
+
+static void FileAssociationsLaunchExecutables()
+{
+	var apps = new[]
+	{
+		new ComputerAppDescriptor
+		{
+			Id = "system.calc",
+			Title = "Calculator",
+			ExecutableName = "Calc.exe",
+			Factory = () => new StubComputerApp()
+		}
+	};
+
+	var target = ComputerFileAssociationPolicy.ResolveLaunchTarget(
+		"/C:/Apps/Calculator/Calc.exe",
+		"Calc.exe",
+		"",
+		apps );
+
+	Equal( "system.calc", target?.AppId );
+}
+
 static void ComputerStateDefaults()
 {
 	var state = new ComputerState();
@@ -167,6 +392,13 @@ static void ComputerStateDefaults()
 	Equal( 768, state.ResolutionY );
 	True( state.ScreenSaver.Enabled );
 	Equal( 60f, state.ScreenSaver.DelaySeconds );
+	Equal( 2f, state.Hardware.RamGb );
+	Equal( 3.7f, state.Hardware.CpuCoreGhz );
+	Equal( 4, state.Hardware.CpuCoreCount );
+	Equal( 256f, state.Hardware.HddStorageGb );
+	Equal( 100f, state.Hardware.InternetSpeedGbps );
+	Equal( 1.54f, state.Hardware.GpuCoreGhz );
+	Equal( 4f, state.Hardware.GpuVramGb );
 	Equal( 0, state.InstalledApps.Count );
 	Equal( 0, state.OpenApps.Count );
 }
@@ -207,4 +439,14 @@ static void Equal<T>( T expected, T actual )
 {
 	if ( !EqualityComparer<T>.Default.Equals( expected, actual ) )
 		throw new InvalidOperationException( $"Expected '{expected}', got '{actual}'." );
+}
+
+static void NotEqual<T>( T left, T right )
+{
+	if ( EqualityComparer<T>.Default.Equals( left, right ) )
+		throw new InvalidOperationException( $"Expected '{left}' and '{right}' to differ." );
+}
+
+file sealed class StubComputerApp : IComputerApp
+{
 }
