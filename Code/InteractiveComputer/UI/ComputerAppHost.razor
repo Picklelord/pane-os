@@ -24,18 +24,18 @@
 
 	protected override void OnAfterTreeRender( bool firstTime )
 	{
-		base.OnAfterTreeRender( firstTime );
-		AddClass( "app-host" );
-
-		if ( Instance?.Session.Content is null || Instance.State is null )
-			return;
-
-		var content = Instance.Session.Content;
-		if ( ReferenceEquals( content, this ) || WouldCreateParentCycle( content ) )
-			return;
-
 		try
 		{
+			base.OnAfterTreeRender( firstTime );
+			AddClass( "app-host" );
+
+			if ( Instance?.Session.Content is null || Instance.State is null )
+				return;
+
+			var content = Instance.Session.Content;
+			if ( ReferenceEquals( content, this ) || WouldCreateParentCycle( content ) )
+				return;
+
 			if ( mountedInstanceId == Instance.State.InstanceId && ReferenceEquals( content.Parent, this ) )
 				return;
 
@@ -43,6 +43,10 @@
 				content.Parent = this;
 
 			mountedInstanceId = Instance.State.InstanceId;
+		}
+		catch ( NullReferenceException )
+		{
+			return;
 		}
 		catch ( Exception ex )
 		{
