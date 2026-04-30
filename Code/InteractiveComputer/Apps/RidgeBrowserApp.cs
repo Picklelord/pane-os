@@ -64,14 +64,6 @@ public sealed class RidgeBrowserPanel : Panel
 		Navigate( currentUrl );
 	}
 
-	public override void Tick()
-	{
-		base.Tick();
-
-		if ( addressBar.HasFocus && Input.Pressed( "enter" ) )
-			NavigateFromAddressBar();
-	}
-
 	private void GoHome()
 	{
 		Navigate( context.LoadSetting( "home_url" ) ?? "paneos://default" );
@@ -212,14 +204,6 @@ public sealed class PoodleSearchPanel : Panel
 		resultsHost.AddClass( "poodle-results" );
 
 		RenderResults();
-	}
-
-	public override void Tick()
-	{
-		base.Tick();
-
-		if ( searchEntry.HasFocus && Input.Pressed( "enter" ) )
-			Search();
 	}
 
 	private void Search()
