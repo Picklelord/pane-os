@@ -7,9 +7,18 @@ This module provides an XP-styled PaneOS interactive desktop for S&Box projects.
 1. Add `InteractiveComputerComponent` to the in-world computer GameObject.
 2. Add a S&Box `ScreenPanel` or `WorldPanel` plus `ComputerDesktop` to the screen/overlay GameObject.
 3. Assign the `InteractiveComputerComponent` to `ComputerDesktop.Computer`.
-4. Either call `BeginInteraction( playerGameObject )` from your player controller or attach `ComputerUseRaycaster` to the player and assign its camera.
+4. Leave `UseGameSettingsResolution = true` unless you specifically want a fixed desktop resolution.
+5. Either call `BeginInteraction( playerGameObject )` from your player controller, call `ToggleInteraction( playerGameObject )` from a model `Button Component`, or attach `ComputerUseRaycaster` to the player and assign its camera.
 
 `ComputerDesktop.VisibleOnlyWhenInteracting` controls whether the desktop only appears after interaction or is always rendered on the panel.
+
+Before adding any RT-screen workflow, do this quick check:
+
+1. Put `ComputerDesktop` on a normal `WorldPanel`.
+2. Set `VisibleOnlyWhenInteracting = false`.
+3. Press play and confirm PaneOS is visible directly.
+
+If that works, PaneOS itself is configured correctly and any later blank monitor issue is in the RT handoff.
 
 If you want the player frozen while the desktop is open, add `ComputerInteractionPlayerLock` to the player GameObject and assign the movement/look components you want disabled during interaction.
 
@@ -25,11 +34,26 @@ If you want the player frozen while the desktop is open, add `ComputerInteractio
 
 The bridge also creates a `PaneOS RT Camera` child with a render target sized to the computer resolution and offers that camera/texture to the RT Screens component. If the monitor shows the wrong crop or a blank image, adjust the `PaneOS RT Camera` transform so it frames the generated `PaneOS Screen` child, or disable `CreateCameraSource` if your RT Screens setup supplies its own camera.
 
+Expected result after entering play mode:
+
+1. A child named `PaneOS Screen` exists under the display object.
+2. A child named `PaneOS RT Camera` exists under the display object.
+3. `PaneOSRtScreenBridge.RenderTarget` is populated.
+4. Your RT Screens package component is manually pointed at the generated camera/render target or matching `ScreenId`.
+
+If you only get a blue blank monitor, the usual causes are:
+
+- The RT screen package is still using a different source.
+- The generated camera is not looking at `PaneOS Screen`.
+- The display is cropped so only background is visible.
+- `PaneOS Screen` exists, but your monitor material/package is not actually showing it yet.
+
 ## Per-computer app setup
 
 Each `InteractiveComputerComponent` has its own saved `ComputerState`.
 
 - `ComputerId` separates one in-world computer's state from another.
+- `UseGameSettingsResolution` makes PaneOS follow the active game resolution and is the default.
 - `InstalledAppIds` is a comma, space, or newline separated list of app IDs to install on that computer.
 - `InstallAllAppsWhenListIsEmpty` installs every registered app when `InstalledAppIds` is blank.
 - `SavedStateJson` stores resolution, sleep/start-menu state, installed apps, installed app settings, open windows, window positions, minimized/focused state, and each window's `Data`.

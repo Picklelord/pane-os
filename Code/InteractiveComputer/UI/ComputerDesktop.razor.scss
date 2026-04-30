@@ -7,7 +7,7 @@
 	font-size: 13px;
 	color: #111;
 	background-color: #1d617c;
-	background-image: url("/Assets/desktopBackground.png");
+	background-image: url("/Assets/desktopbackground.png");
 	background-size: cover;
 	background-position: center;
 	pointer-events: all;
@@ -195,6 +195,18 @@
 	border: 1px solid #7f9db9;
 }
 
+.window-resize-grip {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	width: 18px;
+	height: 18px;
+	background:
+		linear-gradient(135deg, transparent 0 52%, rgba(19, 70, 145, 0.78) 52% 58%, transparent 58% 68%, rgba(19, 70, 145, 0.78) 68% 74%, transparent 74%);
+	cursor: nwse-resize;
+	z-index: 2;
+}
+
 .window-input-overlay {
 	position: absolute;
 	left: 3px;
@@ -282,7 +294,7 @@
 }
 
 .tray {
-	width: 86px;
+	min-width: 138px;
 	height: 100%;
 	align-items: center;
 	justify-content: center;
@@ -290,6 +302,27 @@
 	background: linear-gradient(180deg, #20a8e9, #0d73bc);
 	border-left: 1px solid rgba(255, 255, 255, 0.45);
 	font-size: 12px;
+}
+
+.tray-icons {
+	align-items: center;
+	gap: 6px;
+}
+
+.tray-clock {
+	flex-direction: column;
+	align-items: flex-end;
+	line-height: 12px;
+}
+
+.tray-clock label {
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.tray-clock span {
+	font-size: 10px;
+	opacity: 0.85;
 }
 
 .start-menu {
@@ -397,16 +430,31 @@
 	background: linear-gradient(180deg, #10213d, #07111f);
 }
 
-.sleep-logo {
-	width: 46px;
+.system-logo-badge {
+	min-width: 88px;
 	height: 46px;
+	padding: 0 16px;
 	align-items: center;
 	justify-content: center;
 	border-radius: 5px;
 	background: linear-gradient(180deg, #ffffff, #69afe7);
 	color: #15498f;
-	font-size: 30px;
+	font-size: 24px;
 	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.system-logo-badge.large {
+	min-width: 130px;
+	height: 58px;
+	font-size: 30px;
+}
+
+.boot-logo-image {
+	width: 140px;
+	height: auto;
+	object-fit: contain;
 }
 
 .sleep-card label {
@@ -442,6 +490,43 @@
 	background: rgba(6, 14, 28, 0.38);
 }
 
+.restart-overlay {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	padding: 34px;
+	background: #010101;
+	color: #8ded8d;
+	z-index: 22000;
+}
+
+.restart-log-window {
+	width: 100%;
+	height: 100%;
+	flex-direction: column;
+	border: 1px solid rgba(90, 255, 90, 0.28);
+	padding: 16px 18px;
+	background: rgba(0, 12, 0, 0.72);
+	font-family: Consolas, monospace;
+}
+
+.restart-log-window label {
+	margin-bottom: 12px;
+	color: #d6ffd6;
+	font-weight: 700;
+}
+
+.restart-log-lines {
+	flex-direction: column;
+	gap: 4px;
+}
+
+.restart-log-line {
+	color: #7fed7f;
+}
+
 .screen-saver {
 	position: absolute;
 	left: 0;
@@ -456,6 +541,13 @@
 
 .screen-saver-logo {
 	position: absolute;
+	align-items: center;
+	justify-content: center;
+}
+
+.screen-saver-logo-image {
+	width: 100%;
+	height: 100%;
 	object-fit: contain;
 }
 

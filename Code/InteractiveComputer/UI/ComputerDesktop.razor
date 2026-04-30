@@ -22,9 +22,23 @@
 			{
 				<div class="sleep-overlay" onclick="@Wake">
 					<div class="sleep-card">
-						<div class="sleep-logo">e</div>
+						<div class="system-logo-badge">PaneOS</div>
 						<label>Computer is sleeping</label>
 						<span>Click to wake</span>
+					</div>
+				</div>
+			}
+			else if ( Runtime.State.RestartLogSecondsRemaining > 0f )
+			{
+				<div class="restart-overlay">
+					<div class="restart-log-window">
+						<label>PaneOS restart sequence</label>
+						<div class="restart-log-lines">
+							@foreach ( var line in Runtime.State.RestartLogLines )
+							{
+								<div class="restart-log-line">@line</div>
+							}
+						</div>
 					</div>
 				</div>
 			}
@@ -32,7 +46,7 @@
 			{
 				<div class="boot-overlay">
 					<div class="boot-card">
-						<div class="sleep-logo">e</div>
+						<img class="boot-logo-image" src="/Assets/paneos.png" />
 						<label>PaneOS</label>
 						<span>Starting up...</span>
 					</div>
@@ -42,7 +56,7 @@
 			{
 				<div class="sleep-overlay" onclick="@Unlock">
 					<div class="sleep-card">
-						<div class="sleep-logo">e</div>
+						<div class="system-logo-badge">PaneOS</div>
 						<label>PaneOS Locked</label>
 						<span>Click to unlock</span>
 					</div>
@@ -117,6 +131,7 @@
 							</div>
 						</div>
 						<ComputerAppHost Instance=@app />
+						<div class="window-resize-grip"></div>
 						@if ( Runtime.ShouldBlockInput( app.State.InstanceId ) )
 						{
 							<div class="window-input-overlay">
@@ -128,7 +143,7 @@
 			}
 		</div>
 
-		@if ( Runtime.State.StartMenuOpen && !Runtime.State.IsSleeping )
+		@if ( Runtime.State.StartMenuOpen && !Runtime.State.IsSleeping && !Runtime.State.IsLocked && !Runtime.IsRestarting )
 		{
 			<div class="start-menu">
 				<div class="start-header">
@@ -155,30 +170,38 @@
 			</div>
 		}
 
-		<div class="taskbar">
-			<button class="start-button @(Runtime.State.StartMenuOpen ? "active" : "")" onclick="@ToggleStart">
-				<span>e</span>
-				<label>start</label>
-			</button>
-			<div class="task-list">
-				@foreach ( var app in Runtime.OpenApps )
-				{
-					if ( !app.Descriptor.ShowInTaskbar || !app.Descriptor.HasWindow )
-						continue;
+		@if ( !Runtime.State.IsSleeping && !Runtime.State.IsLocked && !Runtime.IsRestarting )
+		{
+			<div class="taskbar">
+				<button class="start-button @(Runtime.State.StartMenuOpen ? "active" : "")" onclick="@ToggleStart">
+					<span>P</span>
+					<label>start</label>
+				</button>
+				<div class="task-list">
+					@foreach ( var app in Runtime.OpenApps )
+					{
+						if ( !app.Descriptor.ShowInTaskbar || !app.Descriptor.HasWindow )
+							continue;
 
-					<button class="task-button @(Runtime.FocusedApp == app && !app.State.IsMinimized ? "active" : "")"
-							onclick="@(() => ToggleTaskbarApp( app.State.InstanceId ))">
-						<span>@app.State.Icon</span>
-						<label>@app.State.Title</label>
-					</button>
-				}
+						<button class="task-button @(Runtime.FocusedApp == app && !app.State.IsMinimized ? "active" : "")"
+								onclick="@(() => ToggleTaskbarApp( app.State.InstanceId ))">
+							<span>@app.State.Icon</span>
+							<label>@app.State.Title</label>
+						</button>
+					}
+				</div>
+				<div class="tray">
+					<div class="tray-icons">
+						<span>NET</span>
+						<span>VOL</span>
+					</div>
+					<div class="tray-clock">
+						<label>@System.DateTime.Now.ToString( "h:mm tt" )</label>
+						<span>@System.DateTime.Now.ToString( "dd MMM yyyy" )</span>
+					</div>
+				</div>
 			</div>
-			<div class="tray">
-				<span>NET</span>
-				<span>VOL</span>
-				<label>@System.DateTime.Now.ToString( "h:mm tt" )</label>
-			</div>
-		</div>
+		}
 
 		@if ( Runtime.Notifications.Count > 0 )
 		{
@@ -272,9 +295,9 @@
 		{
 			var saver = Runtime.State.ScreenSaver;
 			<div class="screen-saver" onclick="@ScreenSaverActivity">
-				<img class="screen-saver-logo"
-					 src="/Assets/PaneOS.png"
-					 style="left: @(saver.LogoX)px; top: @(saver.LogoY)px; width: @(saver.LogoWidth)px; height: @(saver.LogoHeight)px;" />
+				<div class="screen-saver-logo" style="@GetScreenSaverLogoStyle( saver )">
+					<img class="screen-saver-logo-image" src="/Assets/paneos.png" />
+				</div>
 			</div>
 		}
 	}
@@ -291,17 +314,24 @@
 
 	private const float TitleBarHeight = 29f;
 	private const float WindowControlInset = 64f;
+	private const float ResizeGripSize = 18f;
+	private const float DesktopDoubleClickSeconds = 0.35f;
 
 	private ComputerRuntime? Runtime => Computer?.Runtime;
 	private int lastRenderHash;
 	private string? draggingWindowId;
 	private Vector2 draggingWindowOffset;
+	private string? resizingWindowId;
+	private Vector2 resizingStartMouse;
+	private Vector2 resizingStartSize;
 	private bool wasDraggingWindow;
 	private bool isSelectingDesktop;
 	private Vector2 desktopSelectionStart;
 	private Vector2 desktopSelectionCurrent;
 	private Vector2 desktopContextMenuPosition;
 	private string? desktopContextMenuShortcutId;
+	private string? lastDesktopShortcutClickedId;
+	private float lastDesktopShortcutClickedAt;
 	private readonly HashSet<string> selectedDesktopShortcutIds = new( StringComparer.OrdinalIgnoreCase );
 	private bool ShouldShowDesktop => Computer is not null && Runtime is not null && (!VisibleOnlyWhenInteracting || Computer.IsPlayerInteracting);
 
@@ -322,7 +352,7 @@
 	{
 		if ( draggingWindowId is not null )
 		{
-			ContinueWindowDrag();
+			ContinueWindowDrag( GetLocalMousePosition() );
 			wasDraggingWindow = true;
 		}
 		else
@@ -478,27 +508,53 @@
 	{
 		base.OnMouseDown( e );
 
-		if ( !ShouldShowDesktop || Runtime is null || Runtime.State.IsSleeping || Runtime.ActiveMessageBox is not null || Runtime.IsInputDelayed )
+		if ( !ShouldShowDesktop || Runtime is null || Runtime.State.IsSleeping || Runtime.State.IsLocked || Runtime.IsRestarting || Runtime.ActiveMessageBox is not null )
 			return;
 
-		var dragCandidate = FindDragCandidate();
-		if ( dragCandidate is not null )
+		var localMousePosition = GetLocalMousePosition( e );
+		var topWindow = FindTopWindowAt( localMousePosition );
+		if ( topWindow is not null )
 		{
-			draggingWindowId = dragCandidate.State.InstanceId;
-			draggingWindowOffset = GetLocalMousePosition() - new Vector2( dragCandidate.State.X, dragCandidate.State.Y );
-			Runtime.Focus( dragCandidate.State.InstanceId );
+			Runtime.Focus( topWindow.State.InstanceId );
+
+			if ( IsInsideWindowControls( topWindow, localMousePosition ) )
+			{
+				StateHasChanged();
+				e.StopPropagation();
+				return;
+			}
+
+			if ( IsInsideResizeGrip( topWindow, localMousePosition ) )
+			{
+				resizingWindowId = topWindow.State.InstanceId;
+				resizingStartMouse = localMousePosition;
+				resizingStartSize = new Vector2( topWindow.State.Width, topWindow.State.Height );
+				StateHasChanged();
+				e.StopPropagation();
+				return;
+			}
+
+			if ( IsInsideWindowTitleBar( topWindow, localMousePosition ) )
+			{
+				draggingWindowId = topWindow.State.InstanceId;
+				draggingWindowOffset = localMousePosition - new Vector2( topWindow.State.X, topWindow.State.Y );
+				StateHasChanged();
+				e.StopPropagation();
+				return;
+			}
+
 			StateHasChanged();
 			e.StopPropagation();
 			return;
 		}
 
-		if ( TryGetDesktopShortcutAt( GetLocalMousePosition(), out _ ) )
+		if ( TryGetDesktopShortcutAt( localMousePosition, out _ ) )
 			return;
 
 		HideDesktopContextMenu();
 		selectedDesktopShortcutIds.Clear();
 		isSelectingDesktop = true;
-		desktopSelectionStart = GetLocalMousePosition();
+		desktopSelectionStart = localMousePosition;
 		desktopSelectionCurrent = desktopSelectionStart;
 		StateHasChanged();
 		e.StopPropagation();
@@ -508,9 +564,16 @@
 	{
 		base.OnMouseMove( e );
 
+		if ( resizingWindowId is not null )
+		{
+			ContinueWindowResize( GetLocalMousePosition( e ) );
+			e.StopPropagation();
+			return;
+		}
+
 		if ( isSelectingDesktop )
 		{
-			desktopSelectionCurrent = GetLocalMousePosition();
+			desktopSelectionCurrent = GetLocalMousePosition( e );
 			StateHasChanged();
 			e.StopPropagation();
 			return;
@@ -519,7 +582,7 @@
 		if ( draggingWindowId is null )
 			return;
 
-		ContinueWindowDrag();
+		ContinueWindowDrag( GetLocalMousePosition( e ) );
 		e.StopPropagation();
 	}
 
@@ -537,61 +600,94 @@
 		}
 
 		if ( draggingWindowId is null )
+		{
+			if ( resizingWindowId is null )
+				return;
+
+			resizingWindowId = null;
+			e.StopPropagation();
 			return;
+		}
 
 		draggingWindowId = null;
 		e.StopPropagation();
 	}
 
-	private void ContinueWindowDrag()
+	private void ContinueWindowDrag( Vector2 localMousePosition )
 	{
 		if ( Runtime is null || draggingWindowId is null )
 			return;
 
-		var localMousePosition = GetLocalMousePosition();
 		var nextPosition = localMousePosition - draggingWindowOffset;
 		Runtime.MoveWindow( draggingWindowId, (int)nextPosition.x, (int)nextPosition.y );
 		StateHasChanged();
 	}
 
-	private ComputerRunningApp? FindDragCandidate()
+	private void ContinueWindowResize( Vector2 localMousePosition )
+	{
+		if ( Runtime is null || resizingWindowId is null )
+			return;
+
+		var delta = localMousePosition - resizingStartMouse;
+		var width = resizingStartSize.x + delta.x;
+		var height = resizingStartSize.y + delta.y;
+		Runtime.ResizeWindow( resizingWindowId, (int)width, (int)height );
+		StateHasChanged();
+	}
+
+	private ComputerRunningApp? FindTopWindowAt( Vector2 localMousePosition )
 	{
 		if ( Runtime is null )
 			return null;
-
-		var localMousePosition = GetLocalMousePosition();
 
 		foreach ( var app in Runtime.OpenApps.OrderByDescending( x => x.State.ZIndex ) )
 		{
 			if ( app.State.IsMinimized )
 				continue;
 
-			var windowLeft = app.State.X;
-			var windowTop = app.State.Y;
-			var windowRight = app.State.X + app.State.Width;
-			var titleBarBottom = app.State.Y + TitleBarHeight;
-
-			if ( localMousePosition.x < windowLeft || localMousePosition.x > windowRight )
-				continue;
-
-			if ( localMousePosition.y < windowTop || localMousePosition.y > titleBarBottom )
-				continue;
-
-			if ( localMousePosition.x >= windowRight - WindowControlInset )
-				return null;
-
-			return app;
+			if ( IsInsideWindowBounds( app, localMousePosition ) )
+				return app;
 		}
 
 		return null;
 	}
 
-	private Vector2 GetLocalMousePosition()
+	private static bool IsInsideWindowBounds( ComputerRunningApp app, Vector2 localMousePosition )
 	{
-		if ( Panel is null )
-			return Vector2.Zero;
+		return localMousePosition.x >= app.State.X &&
+			localMousePosition.x <= app.State.X + app.State.Width &&
+			localMousePosition.y >= app.State.Y &&
+			localMousePosition.y <= app.State.Y + app.State.Height;
+	}
 
-		return Mouse.Position - new Vector2( Panel.Box.Left, Panel.Box.Top );
+	private static bool IsInsideWindowTitleBar( ComputerRunningApp app, Vector2 localMousePosition )
+	{
+		return localMousePosition.x >= app.State.X &&
+			localMousePosition.x <= app.State.X + app.State.Width &&
+			localMousePosition.y >= app.State.Y &&
+			localMousePosition.y <= app.State.Y + TitleBarHeight;
+	}
+
+	private static bool IsInsideWindowControls( ComputerRunningApp app, Vector2 localMousePosition )
+	{
+		return IsInsideWindowTitleBar( app, localMousePosition ) &&
+			localMousePosition.x >= app.State.X + app.State.Width - WindowControlInset;
+	}
+
+	private static bool IsInsideResizeGrip( ComputerRunningApp app, Vector2 localMousePosition )
+	{
+		return localMousePosition.x >= app.State.X + app.State.Width - ResizeGripSize &&
+			localMousePosition.x <= app.State.X + app.State.Width &&
+			localMousePosition.y >= app.State.Y + app.State.Height - ResizeGripSize &&
+			localMousePosition.y <= app.State.Y + app.State.Height;
+	}
+
+	private Vector2 GetLocalMousePosition( MousePanelEvent? e = null )
+	{
+		if ( e is not null )
+			return e.LocalPosition;
+
+		return Panel?.MousePosition ?? Vector2.Zero;
 	}
 
 	private string GetDesktopBackgroundStyle()
@@ -682,8 +778,21 @@
 
 	private void SelectDesktopShortcut( string shortcutId )
 	{
+		var clickedAt = Time.Now;
+		if ( selectedDesktopShortcutIds.Contains( shortcutId ) &&
+			string.Equals( lastDesktopShortcutClickedId, shortcutId, StringComparison.OrdinalIgnoreCase ) &&
+			clickedAt - lastDesktopShortcutClickedAt <= DesktopDoubleClickSeconds )
+		{
+			lastDesktopShortcutClickedId = null;
+			lastDesktopShortcutClickedAt = 0f;
+			ActivateDesktopShortcut( shortcutId );
+			return;
+		}
+
 		selectedDesktopShortcutIds.Clear();
 		selectedDesktopShortcutIds.Add( shortcutId );
+		lastDesktopShortcutClickedId = shortcutId;
+		lastDesktopShortcutClickedAt = clickedAt;
 		HideDesktopContextMenu();
 		StateHasChanged();
 	}
@@ -839,6 +948,11 @@
 			.Trim()
 			.TrimStart( '/' )
 			.Split( '/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries );
+	}
+
+	private static string GetScreenSaverLogoStyle( ComputerScreenSaverState saver )
+	{
+		return $"left: {saver.LogoX}px; top: {saver.LogoY}px; width: {saver.LogoWidth}px; height: {saver.LogoHeight}px;";
 	}
 
 	private sealed class DesktopShortcutItem

@@ -8,7 +8,9 @@ public sealed class ComputerState
 	public int ResolutionY { get; set; } = 768;
 	public bool IsSleeping { get; set; }
 	public bool IsLocked { get; set; }
+	public float RestartLogSecondsRemaining { get; set; }
 	public float BootSplashSecondsRemaining { get; set; }
+	public List<string> RestartLogLines { get; set; } = new();
 	public bool StartMenuOpen { get; set; }
 	public string? FocusedInstanceId { get; set; }
 	public string ArchiveUserName { get; set; } = "";

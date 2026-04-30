@@ -27,11 +27,15 @@
 	{
 		base.OnAfterTreeRender( firstTime );
 
-		if ( Instance is null || mountedInstanceId == Instance.State.InstanceId )
+		if ( Instance?.Session.Content is null )
 			return;
 
-		DeleteChildren( true );
-		Instance.Session.Content.Parent = this;
+		if ( mountedInstanceId == Instance.State.InstanceId && Instance.Session.Content.Parent == this )
+			return;
+
+		if ( Instance.Session.Content.Parent != this )
+			Instance.Session.Content.Parent = this;
+
 		mountedInstanceId = Instance.State.InstanceId;
 	}
 }

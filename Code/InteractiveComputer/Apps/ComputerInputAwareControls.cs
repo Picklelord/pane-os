@@ -3,7 +3,7 @@ using Sandbox.UI;
 
 namespace PaneOS.InteractiveComputer.Apps;
 
-[StyleSheet( "Code/InteractiveComputer/Apps/InteractiveComputerApps.scss" )]
+[StyleSheet( "InteractiveComputerApps.scss" )]
 public sealed class ComputerInputAwareTextEntry : TextEntry
 {
 	private readonly Func<bool> shouldSuppressInput;

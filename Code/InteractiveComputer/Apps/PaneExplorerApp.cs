@@ -21,7 +21,7 @@ public sealed class PaneExplorerApp : IComputerApp
 	}
 }
 
-[StyleSheet( "Code/InteractiveComputer/Apps/InteractiveComputerApps.scss" )]
+[StyleSheet( "InteractiveComputerApps.scss" )]
 public sealed class PaneExplorerPanel : Panel
 {
 	private readonly ComputerAppContext context;
@@ -214,7 +214,11 @@ public sealed class PaneExplorerPanel : Panel
 			row.AddEventListener( "oncontextmenu", () => ShowContextMenu( item.VirtualPath ) );
 			row.AddEventListener( "ondblclick", () => ActivateItem( item ) );
 
-			AddCell( row, item.Name );
+			var nameCell = new Panel { Parent = row };
+			nameCell.AddClass( "explorer-cell explorer-name-cell" );
+			var icon = new Label( item.IsDirectory ? "FD" : "FI" ) { Parent = nameCell };
+			icon.AddClass( "explorer-item-icon" );
+			new Label( item.Name ) { Parent = nameCell }.AddClass( "explorer-item-name" );
 			AddCell( row, item.IsDirectory ? "Folder" : item.Extension.TrimStart( '.' ).ToUpperInvariant() + " File" );
 			AddCell( row, item.IsDirectory ? "-" : FormatSize( item.SizeBytes ) );
 		}

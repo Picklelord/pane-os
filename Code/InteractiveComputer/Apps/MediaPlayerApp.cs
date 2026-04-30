@@ -18,7 +18,7 @@ public sealed class MediaPlayerApp : IComputerApp
 	}
 }
 
-[StyleSheet( "Code/InteractiveComputer/Apps/InteractiveComputerApps.scss" )]
+[StyleSheet( "InteractiveComputerApps.scss" )]
 public sealed class MediaPlayerPanel : Panel
 {
 	private readonly Label statusLabel;

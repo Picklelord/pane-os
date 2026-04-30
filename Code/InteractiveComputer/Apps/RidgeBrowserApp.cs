@@ -20,7 +20,7 @@ public sealed class RidgeBrowserApp : IComputerApp
 	}
 }
 
-[StyleSheet( "Code/InteractiveComputer/Apps/InteractiveComputerApps.scss" )]
+[StyleSheet( "InteractiveComputerApps.scss" )]
 public sealed class RidgeBrowserPanel : Panel
 {
 	private readonly ComputerAppContext context;

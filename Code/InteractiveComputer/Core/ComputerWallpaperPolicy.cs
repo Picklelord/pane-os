@@ -10,7 +10,7 @@ public static class ComputerWallpaperPolicy
 		{
 			"blue" => "background: linear-gradient(180deg, #8ec5ff 0%, #3876d6 45%, #123a7e 100%);",
 			"sunset" => "background: linear-gradient(180deg, #ffd7a6 0%, #f58d66 46%, #81386f 100%);",
-			_ => "background-color: #1d617c; background-image: url('/Assets/desktopBackground.png'); background-size: cover; background-position: center;"
+			_ => "background-color: #1d617c; background-image: url('/Assets/desktopbackground.png'); background-size: cover; background-position: center;"
 		};
 	}
 

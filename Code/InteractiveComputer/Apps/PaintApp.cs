@@ -1,3 +1,4 @@
+using System;
 using Sandbox;
 using Sandbox.UI;
 
@@ -17,7 +18,7 @@ public sealed class PaintApp : IComputerApp
 	}
 }
 
-[StyleSheet( "Code/InteractiveComputer/Apps/InteractiveComputerApps.scss" )]
+[StyleSheet( "InteractiveComputerApps.scss" )]
 public sealed class PaintPanel : Panel
 {
 	private readonly PaintCanvas canvas;
@@ -48,20 +49,63 @@ public sealed class PaintPanel : Panel
 
 public sealed class PaintCanvas : Panel
 {
+	private bool isPainting;
+	private Vector2? lastPaintPosition;
+
 	public string CurrentColor { get; set; } = "#1982c4";
 
 	protected override void OnMouseDown( MousePanelEvent e )
 	{
 		base.OnMouseDown( e );
-		var dot = new Panel { Parent = this };
-		dot.AddClass( "paint-dot" );
-		dot.Style.Left = Length.Pixels( e.LocalPosition.x - 8f );
-		dot.Style.Top = Length.Pixels( e.LocalPosition.y - 8f );
-		dot.Style.BackgroundColor = Color.Parse( CurrentColor );
+		isPainting = true;
+		lastPaintPosition = e.LocalPosition;
+		StampDot( e.LocalPosition );
+	}
+
+	protected override void OnMouseMove( MousePanelEvent e )
+	{
+		base.OnMouseMove( e );
+
+		if ( !isPainting )
+			return;
+
+		if ( lastPaintPosition.HasValue )
+		{
+			var delta = e.LocalPosition - lastPaintPosition.Value;
+			var distance = delta.Length;
+			var steps = Math.Max( 1, (int)(distance / 6f) );
+			for ( var step = 1; step <= steps; step++ )
+			{
+				var t = step / (float)steps;
+				StampDot( lastPaintPosition.Value + delta * t );
+			}
+		}
+		else
+		{
+			StampDot( e.LocalPosition );
+		}
+
+		lastPaintPosition = e.LocalPosition;
+	}
+
+	protected override void OnMouseUp( MousePanelEvent e )
+	{
+		base.OnMouseUp( e );
+		isPainting = false;
+		lastPaintPosition = null;
 	}
 
 	public void ClearDots()
 	{
 		DeleteChildren( true );
+	}
+
+	private void StampDot( Vector2 position )
+	{
+		var dot = new Panel { Parent = this };
+		dot.AddClass( "paint-dot" );
+		dot.Style.Left = Length.Pixels( position.x - 8f );
+		dot.Style.Top = Length.Pixels( position.y - 8f );
+		dot.Style.BackgroundColor = Color.Parse( CurrentColor );
 	}
 }

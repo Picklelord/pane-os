@@ -17,7 +17,7 @@ public sealed class CalculatorApp : IComputerApp
 	}
 }
 
-[StyleSheet( "Code/InteractiveComputer/Apps/InteractiveComputerApps.scss" )]
+[StyleSheet( "InteractiveComputerApps.scss" )]
 public sealed class CalculatorPanel : Panel
 {
 	private readonly Label display;

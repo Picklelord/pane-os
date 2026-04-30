@@ -718,6 +718,31 @@
 	align-items: center;
 }
 
+.explorer-name-cell {
+	gap: 8px;
+}
+
+.explorer-item-icon {
+	width: 24px;
+	height: 24px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid rgba(255, 255, 255, 0.7);
+	border-radius: 4px;
+	background: linear-gradient(180deg, #ffffff, #7db7e8 52%, #2256b1);
+	color: #083b7a;
+	font-size: 12px;
+	font-weight: 700;
+	flex-shrink: 0;
+}
+
+.explorer-item-name {
+	min-width: 0;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+
 .explorer-header-cell {
 	font-weight: 700;
 	color: #1a3a74;

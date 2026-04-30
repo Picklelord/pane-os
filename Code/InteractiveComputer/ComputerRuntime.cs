@@ -22,10 +22,26 @@ public sealed class ComputerRuntime
 	private readonly Queue<float> gpuHistory = new();
 	private readonly Queue<float> gpuVramHistory = new();
 	private readonly List<ComputerNotification> notifications = new();
+	private static readonly string[] RestartLogTemplates =
+	{
+		"[init] mounting system32 package registry",
+		"[init] probing virtual storage controller",
+		"[kern] syncing desktop shell state",
+		"[kern] loading process scheduler tables",
+		"[svc] starting networking.exe",
+		"[svc] starting pvchost.exe",
+		"[svc] starting paneos32.exe",
+		"[ui ] loading explorer shell resources",
+		"[drv] warming gpu compositor",
+		"[sec] validating user profile archive",
+		"[fs ] replaying recycle bin journal",
+		"[net] binding local loopback bridge"
+	};
 	private readonly Random random = new();
 	private int nextZIndex = 10;
 	private float systemTickAccumulator;
 	private float inputDelayRemaining;
+	private float restartLogAccumulator;
 	private bool lowMemoryNotificationActive;
 	private ComputerActiveMessageBox? activeMessageBox;
 	private ComputerActiveFileDialog? activeFileDialog;
@@ -72,6 +88,7 @@ public sealed class ComputerRuntime
 	public event Action? Changed;
 
 	public bool IsScreenSaverActive => State.ScreenSaver.Enabled && State.ScreenSaver.IsActive;
+	public bool IsRestarting => State.RestartLogSecondsRemaining > 0f || State.BootSplashSecondsRemaining > 0f;
 
 	public void TickScreenSaver( float deltaSeconds, bool isPlayerInteracting )
 	{
@@ -98,6 +115,20 @@ public sealed class ComputerRuntime
 			inputDelayRemaining = MathF.Max( 0f, inputDelayRemaining - MathF.Max( 0f, deltaSeconds ) );
 			if ( wasDelayed != IsInputDelayed )
 				desktopShouldRefresh = true;
+		}
+
+		if ( State.RestartLogSecondsRemaining > 0f )
+		{
+			State.RestartLogSecondsRemaining = MathF.Max( 0f, State.RestartLogSecondsRemaining - MathF.Max( 0f, deltaSeconds ) );
+			TickRestartLogs( deltaSeconds );
+			desktopShouldRefresh = true;
+
+			if ( State.RestartLogSecondsRemaining <= 0f )
+			{
+				State.RestartLogLines.Clear();
+				State.BootSplashSecondsRemaining = 1.5f;
+				restartLogAccumulator = 0f;
+			}
 		}
 
 		if ( State.BootSplashSecondsRemaining > 0f )
@@ -334,11 +365,14 @@ public sealed class ComputerRuntime
 		State.StartMenuOpen = false;
 		State.IsSleeping = false;
 		State.IsLocked = false;
-		State.BootSplashSecondsRemaining = 1.5f;
+		State.RestartLogSecondsRemaining = 5f;
+		State.BootSplashSecondsRemaining = 0f;
+		State.RestartLogLines.Clear();
 		activeMessageBox = null;
 		activeFileDialog = null;
 		inputDelayRemaining = 0f;
 		systemTickAccumulator = 0f;
+		restartLogAccumulator = 0f;
 		cpuHistory.Clear();
 		ramHistory.Clear();
 		gpuHistory.Clear();
@@ -1190,6 +1224,19 @@ public sealed class ComputerRuntime
 		{
 			lowMemoryNotificationActive = false;
 		}
+	}
+
+	private void TickRestartLogs( float deltaSeconds )
+	{
+		restartLogAccumulator -= MathF.Max( 0f, deltaSeconds );
+		if ( restartLogAccumulator > 0f )
+			return;
+
+		restartLogAccumulator = RandomRange( 0.18f, 0.55f );
+		var nextLine = RestartLogTemplates[random.Next( RestartLogTemplates.Length )];
+		State.RestartLogLines.Add( $"{DateTime.UtcNow:HH:mm:ss.fff} {nextLine}" );
+		while ( State.RestartLogLines.Count > 12 )
+			State.RestartLogLines.RemoveAt( 0 );
 	}
 }
 

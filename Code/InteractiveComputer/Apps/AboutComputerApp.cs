@@ -16,7 +16,7 @@ public sealed class AboutComputerApp : IComputerApp
 	}
 }
 
-[StyleSheet( "Code/InteractiveComputer/Apps/InteractiveComputerApps.scss" )]
+[StyleSheet( "InteractiveComputerApps.scss" )]
 public sealed class AboutComputerPanel : Panel
 {
 	private readonly ComputerAppContext context;

@@ -14,6 +14,7 @@ public sealed class InteractiveComputerComponent : Component
 	private static readonly Dictionary<GameObject, InteractiveComputerComponent> activeComputersByPlayer = new();
 
 	[Property] public string ComputerId { get; set; } = "computer-01";
+	[Property] public bool UseGameSettingsResolution { get; set; } = true;
 	[Property] public int ResolutionX { get; set; } = 1024;
 	[Property] public int ResolutionY { get; set; } = 768;
 	[Property] public bool StartsSleeping { get; set; }
@@ -54,6 +55,7 @@ public sealed class InteractiveComputerComponent : Component
 
 	protected override void OnUpdate()
 	{
+		RefreshResolutionFromSettings();
 		Runtime?.TickScreenSaver( Time.Delta, IsPlayerInteracting );
 		Runtime?.TickSystem( Time.Delta );
 
@@ -191,13 +193,10 @@ public sealed class InteractiveComputerComponent : Component
 
 		state ??= new ComputerState
 		{
-			ResolutionX = ResolutionX,
-			ResolutionY = ResolutionY,
 			IsSleeping = StartsSleeping
 		};
 
-		state.ResolutionX = ResolutionX;
-		state.ResolutionY = ResolutionY;
+		ApplyConfiguredResolution( state );
 		ApplyCreationScreenSaverSettings( state, loadedFromSavedState );
 		ApplyCreationAppList( state, loadedFromSavedState );
 		statesByComputerId[ComputerId] = state;
@@ -208,11 +207,10 @@ public sealed class InteractiveComputerComponent : Component
 	{
 		var state = new ComputerState
 		{
-			ResolutionX = ResolutionX,
-			ResolutionY = ResolutionY,
 			IsSleeping = StartsSleeping
 		};
 
+		ApplyConfiguredResolution( state );
 		ApplyCreationScreenSaverSettings( state, false );
 		ApplyCreationAppList( state, false );
 		statesByComputerId[ComputerId] = state;
@@ -323,6 +321,13 @@ public sealed class InteractiveComputerComponent : Component
 		state.ScreenSaver.LogoY = MathF.Max( 0f, (state.ResolutionY - state.ScreenSaver.LogoHeight) * 0.5f );
 	}
 
+	private void ApplyConfiguredResolution( ComputerState state )
+	{
+		var resolution = ResolveConfiguredResolution();
+		state.ResolutionX = resolution.X;
+		state.ResolutionY = resolution.Y;
+	}
+
 	private void ApplyHardwareSettings( ComputerState state )
 	{
 		state.Hardware.RamGb = MathF.Max( 0.25f, RamGb );
@@ -351,6 +356,26 @@ public sealed class InteractiveComputerComponent : Component
 	private void EnsureArchiveReady()
 	{
 		PaneArchiveFileSystem.EnsureArchive( ResolveArchivePath(), ResolvePersistentArchiveUserName( Runtime?.State ?? LoadState() ), Runtime?.Apps ?? ComputerAppRegistry.Apps );
+	}
+
+	private void RefreshResolutionFromSettings()
+	{
+		if ( Runtime is null )
+			return;
+
+		var resolution = ResolveConfiguredResolution();
+		if ( Runtime.State.ResolutionX == resolution.X && Runtime.State.ResolutionY == resolution.Y )
+			return;
+
+		Runtime.State.ResolutionX = resolution.X;
+		Runtime.State.ResolutionY = resolution.Y;
+		ScreenSaverSimulator.ClampLogo( Runtime.State );
+		Runtime.MarkChanged();
+	}
+
+	private (int X, int Y) ResolveConfiguredResolution()
+	{
+		return ComputerResolutionPolicy.ResolveResolution( UseGameSettingsResolution, ResolutionX, ResolutionY, Screen.Width, Screen.Height );
 	}
 
 	private static IReadOnlyList<string> ParseVirtualPath( string virtualPath )

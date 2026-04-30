@@ -35,6 +35,7 @@ var tests = new (string Name, Action Body)[]
 	("Desktop shortcut layout wraps into additional columns", DesktopShortcutLayoutWrapsColumns),
 	("Desktop selection rectangle captures intersecting shortcuts", DesktopSelectionCapturesIntersectingShortcuts),
 	("Maintenance policy generates visible update and install logs", MaintenancePolicyGeneratesLogs),
+	("Resolution policy prefers game settings by default and clamps minimum sizes", ResolutionPolicyUsesGameSettingsWhenEnabled),
 	("Computer state defaults include screensaver and app lists", ComputerStateDefaults),
 };
 
@@ -497,6 +498,17 @@ static void MaintenancePolicyGeneratesLogs()
 	AssertContains( "Package staged successfully.", installRecord.FileContent );
 }
 
+static void ResolutionPolicyUsesGameSettingsWhenEnabled()
+{
+	var gameResolution = ComputerResolutionPolicy.ResolveResolution( true, 1024, 768, 1920f, 1080f );
+	var manualResolution = ComputerResolutionPolicy.ResolveResolution( false, 800, 600, 1920f, 1080f );
+	var clampedResolution = ComputerResolutionPolicy.ResolveResolution( true, 10, 10, 200f, 120f );
+
+	Equal( (1920, 1080), gameResolution );
+	Equal( (800, 600), manualResolution );
+	Equal( (320, 240), clampedResolution );
+}
+
 static void ComputerStateDefaults()
 {
 	var state = new ComputerState();
@@ -511,6 +523,9 @@ static void ComputerStateDefaults()
 	Equal( 100f, state.Hardware.InternetSpeedGbps );
 	Equal( 1.54f, state.Hardware.GpuCoreGhz );
 	Equal( 4f, state.Hardware.GpuVramGb );
+	Equal( 0f, state.RestartLogSecondsRemaining );
+	Equal( 0f, state.BootSplashSecondsRemaining );
+	Equal( 0, state.RestartLogLines.Count );
 	Equal( 0, state.InstalledApps.Count );
 	Equal( 0, state.OpenApps.Count );
 }

@@ -19,7 +19,7 @@ public sealed class NotepadApp : IComputerApp
 	}
 }
 
-[StyleSheet( "Code/InteractiveComputer/Apps/InteractiveComputerApps.scss" )]
+[StyleSheet( "InteractiveComputerApps.scss" )]
 public sealed class NotepadPanel : Panel
 {
 	private readonly ComputerAppContext context;
