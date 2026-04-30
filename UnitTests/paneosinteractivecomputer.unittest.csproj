@@ -3,20 +3,28 @@
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
-		<AssemblyName>paneosinteractivecomputer.editor</AssemblyName>
-		<PackageId>paneosinteractivecomputer.editor</PackageId>
+		<AssemblyName>paneosinteractivecomputer.unittest</AssemblyName>
+		<PackageId>paneosinteractivecomputer.unittest</PackageId>
 		<LangVersion>14</LangVersion>
 		<NoWarn>1701;1702;1591;</NoWarn>
 		<WarningsAsErrors></WarningsAsErrors>
 		<TreatWarningsAsErrors>False</TreatWarningsAsErrors>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<DefineConstants>SANDBOX</DefineConstants>
-		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<AllowUnsafeBlocks>False</AllowUnsafeBlocks>
 		<OutputPath>../../../../../Repositories/sbox-public/game/.vs/output/</OutputPath>
-		<DocumentationFile>../../../../../Repositories/sbox-public/game/.vs/output/paneosinteractivecomputer.editor.xml</DocumentationFile>
+		<DocumentationFile>../../../../../Repositories/sbox-public/game/.vs/output/paneosinteractivecomputer.unittest.xml</DocumentationFile>
 		<RootNamespace>Sandbox</RootNamespace>
 		<Nullable>disable</Nullable>
+		<IsTestProject>true</IsTestProject>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.7.2" /> 
+		<PackageReference Include="MSTest.TestAdapter" Version="3.1.1" /> 
+		<PackageReference Include="MSTest.TestFramework" Version="3.1.1" /> 
+		<PackageReference Include="coverlet.collector" Version="6.0.0" /> 
+	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="Sandbox.Internal.GlobalToolsNamespace" Static="true" />
@@ -49,6 +57,7 @@
 		<ProjectReference Include="../../../../../Repositories/sbox-public/game/addons/tools/Code/Base Editor Library.csproj" />
 		<ProjectReference Include="../../../../../Repositories/sbox-public/game/editor/MovieMaker/Code/moviemaker.csproj" />
 		<ProjectReference Include="../Code/paneosinteractivecomputer.csproj" />
+		<ProjectReference Include="../Editor/paneosinteractivecomputer.editor.csproj" />
 		<ProjectReference Include="../../../../../Repositories/sbox-public/game/editor/ShaderGraph/Code/shadergraph.csproj" />
 	</ItemGroup>
 
