@@ -33,6 +33,9 @@
 				return;
 
 			var content = Instance.Session.Content;
+			if ( !content.IsValid() )
+				return;
+
 			if ( ReferenceEquals( content, this ) || WouldCreateParentCycle( content ) )
 				return;
 
@@ -48,10 +51,28 @@
 		{
 			return;
 		}
+		catch ( Exception ex ) when ( ex.Message.Contains( "Removed Child but didn't have child!", StringComparison.OrdinalIgnoreCase ) )
+		{
+			return;
+		}
 		catch ( Exception ex )
 		{
 			Log.Warning( $"PaneOS app host mount skipped: {ex.Message}" );
 		}
+	}
+
+	public override void OnDeleted()
+	{
+		try
+		{
+			if ( Instance?.Session.Content is { } content && ReferenceEquals( content.Parent, this ) )
+				content.Parent = null;
+		}
+		catch ( Exception )
+		{
+		}
+
+		base.OnDeleted();
 	}
 
 	private bool WouldCreateParentCycle( Panel content )

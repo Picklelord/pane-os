@@ -21,7 +21,7 @@ public sealed class TaskManagerApp : IComputerApp
 }
 
 [StyleSheet( "InteractiveComputerApps.scss" )]
-public sealed class TaskManagerPanel : Panel
+public sealed class TaskManagerPanel : ComputerWarmupPanel
 {
 	private readonly ComputerAppContext context;
 	private readonly Panel contentHost;
@@ -60,6 +60,11 @@ public sealed class TaskManagerPanel : Panel
 			return;
 
 		RenderActiveTab( false );
+	}
+
+	protected override void WarmupRefresh()
+	{
+		RenderActiveTab( true );
 	}
 
 	private Button CreateTabButton( Panel parent, string label, TaskManagerTab tab )
@@ -193,10 +198,15 @@ public sealed class TaskManagerPanel : Panel
 
 		var driveCard = new Panel { Parent = contentHost };
 		driveCard.AddClass( "storage-drive-card" );
-		new Label( "C:" ) { Parent = driveCard }.AddClass( "storage-drive-title" );
-		new Label( $"HDD: {hardware.HddStorageGb:0.##} GB total" ) { Parent = driveCard };
-		new Label( $"Used: {metrics.UsedStorageGb:0.###} GB" ) { Parent = driveCard };
-		new Label( $"Free: {metrics.UnusedStorageGb:0.###} GB" ) { Parent = driveCard };
+		var driveHeader = new Panel { Parent = driveCard };
+		driveHeader.AddClass( "storage-drive-header" );
+		new Label( "C:" ) { Parent = driveHeader }.AddClass( "storage-drive-title" );
+		new Label( "Primary Drive" ) { Parent = driveHeader }.AddClass( "storage-drive-subtitle" );
+		var driveStats = new Panel { Parent = driveCard };
+		driveStats.AddClass( "storage-drive-stats" );
+		new Label( $"HDD: {hardware.HddStorageGb:0.##} GB total" ) { Parent = driveStats };
+		new Label( $"Used: {metrics.UsedStorageGb:0.###} GB" ) { Parent = driveStats };
+		new Label( $"Free: {metrics.UnusedStorageGb:0.###} GB" ) { Parent = driveStats };
 
 		var table = new Panel { Parent = contentHost };
 		table.AddClass( "task-table" );

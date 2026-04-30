@@ -20,16 +20,29 @@ public sealed class NotepadApp : IComputerApp
 }
 
 [StyleSheet( "InteractiveComputerApps.scss" )]
-public sealed class NotepadPanel : Panel
+public sealed class NotepadPanel : ComputerWarmupPanel
 {
 	private readonly ComputerAppContext context;
-	private readonly TextEntry textEntry;
+	private ComputerInputAwareTextEntry textEntry = null!;
 	private string currentFilePath;
 
 	public NotepadPanel( ComputerAppContext context )
 	{
 		this.context = context;
 		AddClass( "notepad-app" );
+		BuildUi();
+	}
+
+	protected override void WarmupRefresh()
+	{
+		BuildUi();
+	}
+
+	private void BuildUi()
+	{
+		var currentText = textEntry?.Text;
+		var caretPosition = textEntry?.CaretPosition ?? 0;
+		DeleteChildren( true );
 
 		var toolbar = new Panel { Parent = this };
 		toolbar.AddClass( "notepad-toolbar" );
@@ -49,12 +62,20 @@ public sealed class NotepadPanel : Panel
 		textEntry = new ComputerInputAwareTextEntry( () => context.Runtime.ShouldBlockInput( context.State.InstanceId ) )
 		{
 			Parent = this,
-			Text = "",
+			Text = currentText ?? "",
 			Multiline = true,
 			Placeholder = ""
 		};
 		textEntry.AddClass( "notepad-text" );
-		LoadInitialDocument();
+
+		if ( currentText is null )
+		{
+			LoadInitialDocument();
+		}
+		else
+		{
+			textEntry.CaretPosition = Math.Clamp( caretPosition, 0, textEntry.TextLength );
+		}
 	}
 
 	public override void Tick()

@@ -15,6 +15,11 @@
 
 <root class="computer-root @(Runtime.State.IsSleeping ? "is-sleeping" : "") @(!ShouldShowDesktop ? "is-hidden" : "")"
 	  style="width: 100%; height: 100%; @GetDesktopBackgroundStyle()">
+	@if ( ShouldRenderWallpaperImageLayer() )
+	{
+		<div class="wallpaper-image-layer"></div>
+	}
+
 	@if ( ShouldShowDesktop )
 	{
 		<div class="desktop" onclick="@CloseStartMenu">
@@ -103,11 +108,11 @@
 
 				@foreach ( var app in Runtime.OpenApps )
 				{
-					if ( !app.Descriptor.HasWindow || app.State.IsMinimized )
+					if ( !app.Descriptor.HasWindow )
 						continue;
 
 					<div @key="app.State.InstanceId"
-						 class="xp-window @(Runtime.FocusedApp == app ? "focused" : "") @(Runtime.GetEffectiveStatus( app.State.InstanceId ) == ComputerProcessStatus.NotResponding ? "not-responding" : "")"
+						 class="xp-window @(app.State.IsMinimized ? "minimized" : "") @(Runtime.FocusedApp == app ? "focused" : "") @(Runtime.GetEffectiveStatus( app.State.InstanceId ) == ComputerProcessStatus.NotResponding ? "not-responding" : "")"
 						 style="left: @(app.State.X)px; top: @(app.State.Y)px; width: @(app.State.Width)px; height: @(app.State.Height)px; z-index: @(app.State.ZIndex);"
 						 onclick="@(() => Focus( app.State.InstanceId ))">
 						<div class="title-bar">
@@ -218,11 +223,13 @@
 		@if ( Runtime.ActiveMessageBox is not null )
 		{
 			var messageBox = Runtime.ActiveMessageBox;
-			<div class="message-box-overlay">
-				<div class="message-box-window">
-					<div class="message-box-title-bar">
-						<label>@messageBox.Options.Title</label>
-					</div>
+				<div class="message-box-overlay">
+					<div class="message-box-window"
+						 @onclick:stopPropagation="true"
+						 @onmousedown:stopPropagation="true">
+						<div class="message-box-title-bar">
+							<label>@messageBox.Options.Title</label>
+						</div>
 					<div class="message-box-body">
 						<div class="message-box-icon">@messageBox.Options.Icon</div>
 						<div class="message-box-copy">
@@ -230,8 +237,11 @@
 							@if ( messageBox.Options.HasTextInput )
 							{
 								<input class="message-box-input"
+									   autofocus="autofocus"
 									   @bind="Runtime.ActiveMessageBox.CurrentText"
 									   @bind:event="oninput"
+									   @onclick:stopPropagation="true"
+									   @onmousedown:stopPropagation="true"
 									   placeholder="@messageBox.Options.TextInputPlaceholder" />
 							}
 						</div>
@@ -250,7 +260,9 @@
 		{
 			var fileDialog = Runtime.ActiveFileDialog;
 			<div class="message-box-overlay">
-				<div class="file-dialog-window">
+				<div class="file-dialog-window"
+					 @onclick:stopPropagation="true"
+					 @onmousedown:stopPropagation="true">
 					<div class="message-box-title-bar">
 						<label>@fileDialog.Options.Title</label>
 					</div>
@@ -275,8 +287,11 @@
 						<div class="file-dialog-name-row">
 							<label>File name</label>
 							<input class="message-box-input"
+								   autofocus="autofocus"
 								   @bind="Runtime.ActiveFileDialog.CurrentFileName"
-								   @bind:event="oninput" />
+								   @bind:event="oninput"
+								   @onclick:stopPropagation="true"
+								   @onmousedown:stopPropagation="true" />
 						</div>
 					}
 					<div class="message-box-actions">
@@ -292,7 +307,7 @@
 			var saver = Runtime.State.ScreenSaver;
 			<div class="screen-saver" onclick="@ScreenSaverActivity">
 				<div class="screen-saver-logo" style="@GetScreenSaverLogoStyle( saver )">
-					<div class="system-logo-badge large">PaneOS</div>
+					<div class="screen-saver-logo-image"></div>
 				</div>
 			</div>
 		}
@@ -659,15 +674,36 @@
 
 	private Vector2 GetLocalMousePosition( MousePanelEvent? e = null )
 	{
-		if ( e is not null && Panel is not null )
+		var desktopSurface = GetDesktopSurfacePanel();
+		if ( e is not null && desktopSurface is not null )
 		{
 			var screenPosition = e.Target is not null
 				? e.Target.PanelPositionToScreenPosition( e.LocalPosition )
 				: e.LocalPosition;
-			return Panel.ScreenPositionToPanelPosition( screenPosition );
+			return NormalizeMouseToDesktopSpace( desktopSurface.ScreenPositionToPanelPosition( screenPosition ) );
 		}
 
-		return Panel?.MousePosition ?? Vector2.Zero;
+		return NormalizeMouseToDesktopSpace( desktopSurface?.MousePosition ?? Panel?.MousePosition ?? Vector2.Zero );
+	}
+
+	private Vector2 NormalizeMouseToDesktopSpace( Vector2 panelLocalPosition )
+	{
+		var desktopSurface = GetDesktopSurfacePanel();
+		if ( Runtime is null || desktopSurface is null )
+			return panelLocalPosition;
+
+		var rect = desktopSurface.Box.Rect;
+		var width = MathF.Max( 1f, rect.Width );
+		var height = MathF.Max( 1f, rect.Height );
+
+		return new Vector2(
+			panelLocalPosition.x * Runtime.State.ResolutionX / width,
+			panelLocalPosition.y * Runtime.State.ResolutionY / height );
+	}
+
+	private Panel? GetDesktopSurfacePanel()
+	{
+		return Panel?.Children.FirstOrDefault();
 	}
 
 	private string GetDesktopBackgroundStyle()
@@ -675,6 +711,11 @@
 		return Runtime is null
 			? ""
 			: ComputerWallpaperPolicy.GetBackgroundStyle( Runtime.State.DesktopWallpaper );
+	}
+
+	private bool ShouldRenderWallpaperImageLayer()
+	{
+		return Runtime is not null && ComputerWallpaperPolicy.Normalize( Runtime.State.DesktopWallpaper ) == "default";
 	}
 
 	private IReadOnlyList<DesktopShortcutItem> GetDesktopShortcuts()

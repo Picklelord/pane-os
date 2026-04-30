@@ -22,19 +22,20 @@ public sealed class PaneExplorerApp : IComputerApp
 }
 
 [StyleSheet( "InteractiveComputerApps.scss" )]
-public sealed class PaneExplorerPanel : Panel
+public sealed class PaneExplorerPanel : ComputerWarmupPanel
 {
 	private readonly ComputerAppContext context;
 	private readonly string archivePath;
-	private readonly Panel listHost;
-	private readonly Panel contextMenuHost;
-	private readonly Label pathLabel;
+	private Panel listHost = null!;
+	private Panel contextMenuHost = null!;
+	private Label pathLabel = null!;
 	private readonly IReadOnlyList<string> documentsPath;
 	private IReadOnlyList<string> currentPath;
 	private string? selectedPath;
 	private string? contextMenuPath;
 	private readonly Stack<string[]> backHistory = new();
 	private readonly Stack<string[]> forwardHistory = new();
+	private readonly Dictionary<string, Panel> rowByPath = new( StringComparer.OrdinalIgnoreCase );
 
 	public PaneExplorerPanel( ComputerAppContext context )
 	{
@@ -49,6 +50,17 @@ public sealed class PaneExplorerPanel : Panel
 
 		documentsPath = ParsePath( context.GetDefaultDocumentsPath() );
 		currentPath = ParsePath( context.LoadValue( "path" ) ?? context.GetDefaultDocumentsPath() );
+		BuildUi();
+	}
+
+	protected override void WarmupRefresh()
+	{
+		BuildUi();
+	}
+
+	private void BuildUi()
+	{
+		DeleteChildren( true );
 
 		var toolbar = new Panel { Parent = this };
 		toolbar.AddClass( "explorer-toolbar" );
@@ -200,16 +212,17 @@ public sealed class PaneExplorerPanel : Panel
 		HideContextMenu();
 		pathLabel.Text = currentPath.Count == 0 ? "My PC" : string.Join( " / ", currentPath );
 		listHost.DeleteChildren( true );
+		rowByPath.Clear();
 
 		foreach ( var item in PaneArchiveFileSystem.GetItems( archivePath, currentPath ) )
 		{
-			var row = new Panel { Parent = listHost };
+			var row = new ExplorerItemRow( item.VirtualPath, item.IsDirectory ) { Parent = listHost };
 			row.AddClass( "explorer-row" );
+			rowByPath[item.VirtualPath] = row;
 			row.SetClass( "selected", string.Equals( selectedPath, item.VirtualPath, StringComparison.OrdinalIgnoreCase ) );
 			row.AddEventListener( "onclick", () =>
 			{
-				selectedPath = item.VirtualPath;
-				RefreshListing();
+				SelectPath( item.VirtualPath );
 			} );
 			row.AddEventListener( "oncontextmenu", () => ShowContextMenu( item.VirtualPath ) );
 			row.AddEventListener( "ondblclick", () => ActivateItem( item ) );
@@ -222,6 +235,8 @@ public sealed class PaneExplorerPanel : Panel
 			AddCell( row, item.IsDirectory ? "Folder" : item.Extension.TrimStart( '.' ).ToUpperInvariant() + " File" );
 			AddCell( row, item.IsDirectory ? "-" : FormatSize( item.SizeBytes ) );
 		}
+
+		SyncSelectionStyles();
 	}
 
 	private void ActivateItem( PaneArchiveItem item )
@@ -273,7 +288,7 @@ public sealed class PaneExplorerPanel : Panel
 
 	private void ShowContextMenu( string targetPath )
 	{
-		selectedPath = targetPath;
+		SelectPath( targetPath );
 		contextMenuPath = targetPath;
 		contextMenuHost.DeleteChildren( true );
 
@@ -351,5 +366,37 @@ public sealed class PaneExplorerPanel : Panel
 			return $"{bytes / 1024f:0.0} KB";
 
 		return $"{bytes / 1024f / 1024f:0.0} MB";
+	}
+
+	private void SelectPath( string virtualPath )
+	{
+		selectedPath = virtualPath;
+		SyncSelectionStyles();
+	}
+
+	private void SyncSelectionStyles()
+	{
+		foreach ( var row in rowByPath )
+			row.Value.SetClass( "selected", string.Equals( selectedPath, row.Key, StringComparison.OrdinalIgnoreCase ) );
+	}
+}
+
+public sealed class ExplorerItemRow : Panel
+{
+	private readonly string virtualPath;
+	private readonly bool isDirectory;
+
+	public ExplorerItemRow( string virtualPath, bool isDirectory )
+	{
+		this.virtualPath = virtualPath;
+		this.isDirectory = isDirectory;
+	}
+
+	public override bool WantsDrag => !isDirectory;
+
+	protected override void OnDragStart( DragEvent e )
+	{
+		base.OnDragStart( e );
+		ComputerUiDragState.BeginDrag( virtualPath );
 	}
 }
