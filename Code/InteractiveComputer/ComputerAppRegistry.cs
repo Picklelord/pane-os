@@ -118,7 +118,7 @@ public static class ComputerAppRegistry
 			Title = "Calculator",
 			Icon = "CA",
 			SortOrder = 22,
-			DefaultWindowWidth = 320,
+			DefaultWindowWidth = 360,
 			DefaultWindowHeight = 360,
 			StorageSpaceUsedGb = 0.04f,
 			ExpectedCoreCountUsageAvg = 0.08f,

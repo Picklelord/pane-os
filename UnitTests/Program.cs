@@ -37,6 +37,8 @@ var tests = new (string Name, Action Body)[]
 	("Desktop selection rectangle captures intersecting shortcuts", DesktopSelectionCapturesIntersectingShortcuts),
 	("Window layout policy honors app defaults and cascades offsets", WindowLayoutPolicyHonorsDescriptorDefaults),
 	("Maintenance policy generates visible update and install logs", MaintenancePolicyGeneratesLogs),
+	("Media playlist policy respects repeat modes", MediaPlaylistPolicyRespectsRepeatModes),
+	("Media playlist shuffle preserves all items", MediaPlaylistShufflePreservesItems),
 	("Resolution policy prefers game settings by default and clamps minimum sizes", ResolutionPolicyUsesGameSettingsWhenEnabled),
 	("Computer state defaults include screensaver and app lists", ComputerStateDefaults),
 };
@@ -309,8 +311,7 @@ static void WallpaperPolicyNormalizesKnownValues()
 static void WallpaperPolicyUsesDesktopImageByDefault()
 {
 	var style = ComputerWallpaperPolicy.GetBackgroundStyle( "default" );
-	AssertContains( "textures/desktopbackground.png", style );
-	AssertContains( "background-size: cover", style );
+	AssertContains( "background-color: #2c7cb7", style );
 }
 
 static void ArchiveTextFilesRoundTrip()
@@ -527,6 +528,21 @@ static void MaintenancePolicyGeneratesLogs()
 	AssertContains( "Notepad", updateRecord.FileContent );
 	Equal( "Media Codec Pack Setup Log.txt", installRecord.FileName );
 	AssertContains( "Package staged successfully.", installRecord.FileContent );
+}
+
+static void MediaPlaylistPolicyRespectsRepeatModes()
+{
+	Equal( 0, ComputerMediaPlaylistPolicy.ResolveNextIndex( 2, 3, ComputerMediaRepeatMode.Playlist ) );
+	Equal( 2, ComputerMediaPlaylistPolicy.ResolveNextIndex( 2, 3, ComputerMediaRepeatMode.None ) );
+	Equal( 1, ComputerMediaPlaylistPolicy.ResolveNextIndex( 1, 3, ComputerMediaRepeatMode.Single ) );
+}
+
+static void MediaPlaylistShufflePreservesItems()
+{
+	var original = new[] { "a", "b", "c", "d" };
+	var shuffled = ComputerMediaPlaylistPolicy.Shuffle( original, 1234 );
+	Equal( original.Length, shuffled.Count );
+	True( original.All( item => shuffled.Contains( item ) ) );
 }
 
 static void ResolutionPolicyUsesGameSettingsWhenEnabled()

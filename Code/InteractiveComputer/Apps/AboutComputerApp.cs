@@ -17,7 +17,7 @@ public sealed class AboutComputerApp : IComputerApp
 }
 
 [StyleSheet( "InteractiveComputerApps.scss" )]
-public sealed class AboutComputerPanel : Panel
+public sealed class AboutComputerPanel : ComputerWarmupPanel
 {
 	private readonly ComputerAppContext context;
 	private int lastVersion = -1;
@@ -36,6 +36,11 @@ public sealed class AboutComputerPanel : Panel
 		if ( lastVersion == context.Runtime.Version )
 			return;
 
+		Rebuild();
+	}
+
+	protected override void WarmupRefresh()
+	{
 		Rebuild();
 	}
 

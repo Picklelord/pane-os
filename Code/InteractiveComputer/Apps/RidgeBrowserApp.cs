@@ -21,12 +21,12 @@ public sealed class RidgeBrowserApp : IComputerApp
 }
 
 [StyleSheet( "InteractiveComputerApps.scss" )]
-public sealed class RidgeBrowserPanel : Panel
+public sealed class RidgeBrowserPanel : ComputerWarmupPanel
 {
 	private readonly ComputerAppContext context;
-	private readonly TextEntry addressBar;
-	private readonly Panel contentHost;
-	private readonly Label statusLabel;
+	private ComputerInputAwareTextEntry addressBar = null!;
+	private Panel contentHost = null!;
+	private Label statusLabel = null!;
 	private string currentUrl;
 	private RidgePolicyResult pageState = new();
 
@@ -36,6 +36,17 @@ public sealed class RidgeBrowserPanel : Panel
 		AddClass( "ridge-app" );
 
 		currentUrl = context.LoadValue( "url" ) ?? context.LoadSetting( "home_url" ) ?? "paneos://default";
+		BuildUi();
+	}
+
+	protected override void WarmupRefresh()
+	{
+		BuildUi();
+	}
+
+	private void BuildUi()
+	{
+		DeleteChildren( true );
 
 		var toolbar = new Panel { Parent = this };
 		toolbar.AddClass( "ridge-toolbar" );
@@ -166,18 +177,30 @@ public sealed class RidgeBrowserPanel : Panel
 	}
 }
 
-public sealed class PoodleSearchPanel : Panel
+public sealed class PoodleSearchPanel : ComputerWarmupPanel
 {
 	private readonly ComputerAppContext context;
 	private readonly Action<string> onSearch;
-	private readonly TextEntry searchEntry;
-	private readonly Panel resultsHost;
+	private ComputerInputAwareTextEntry searchEntry = null!;
+	private Panel resultsHost = null!;
 
 	public PoodleSearchPanel( ComputerAppContext context, Action<string> onSearch )
 	{
 		this.context = context;
 		this.onSearch = onSearch;
 		AddClass( "poodle-page" );
+		BuildUi();
+	}
+
+	protected override void WarmupRefresh()
+	{
+		BuildUi();
+	}
+
+	private void BuildUi()
+	{
+		var currentQuery = searchEntry?.Text ?? context.LoadValue( "poodle_query" ) ?? "";
+		DeleteChildren( true );
 
 		var logo = new Label( "Poodle" ) { Parent = this };
 		logo.AddClass( "poodle-logo" );
@@ -191,7 +214,7 @@ public sealed class PoodleSearchPanel : Panel
 		searchEntry = new ComputerInputAwareTextEntry( () => context.Runtime.ShouldBlockInput( context.State.InstanceId ) )
 		{
 			Parent = searchRow,
-			Text = context.LoadValue( "poodle_query" ) ?? "",
+			Text = currentQuery,
 			Placeholder = "Search PaneOS"
 		};
 		searchEntry.AddClass( "poodle-input" );

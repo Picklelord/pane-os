@@ -19,7 +19,7 @@ public sealed class SettingsApp : IComputerApp
 }
 
 [StyleSheet( "InteractiveComputerApps.scss" )]
-public sealed class SettingsPanel : Panel
+public sealed class SettingsPanel : ComputerWarmupPanel
 {
 	private readonly ComputerAppContext context;
 	private int lastVersion = -1;
@@ -38,6 +38,11 @@ public sealed class SettingsPanel : Panel
 		if ( lastVersion == context.Runtime.Version )
 			return;
 
+		Rebuild();
+	}
+
+	protected override void WarmupRefresh()
+	{
 		Rebuild();
 	}
 

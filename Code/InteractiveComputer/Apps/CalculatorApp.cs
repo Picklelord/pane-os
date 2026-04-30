@@ -18,9 +18,9 @@ public sealed class CalculatorApp : IComputerApp
 }
 
 [StyleSheet( "InteractiveComputerApps.scss" )]
-public sealed class CalculatorPanel : Panel
+public sealed class CalculatorPanel : ComputerWarmupPanel
 {
-	private readonly Label display;
+	private Label display = null!;
 	private float accumulator;
 	private string pendingOperator = "";
 	private bool resetOnNextDigit;
@@ -28,7 +28,20 @@ public sealed class CalculatorPanel : Panel
 	public CalculatorPanel()
 	{
 		AddClass( "calculator-app" );
-		display = new Label( "0" ) { Parent = this };
+		BuildUi();
+	}
+
+	protected override void WarmupRefresh()
+	{
+		BuildUi();
+	}
+
+	private void BuildUi()
+	{
+		var displayText = display?.Text ?? "0";
+		DeleteChildren( true );
+
+		display = new Label( displayText ) { Parent = this };
 		display.AddClass( "calculator-display" );
 
 		var grid = new Panel { Parent = this };
@@ -41,7 +54,9 @@ public sealed class CalculatorPanel : Panel
 			button.AddEventListener( "onclick", () => OnKey( key ) );
 		}
 
-		var clearButton = new Button( "C" ) { Parent = this };
+		var footer = new Panel { Parent = this };
+		footer.AddClass( "calculator-footer" );
+		var clearButton = new Button( "C" ) { Parent = footer };
 		clearButton.AddClass( "calculator-clear" );
 		clearButton.AddEventListener( "onclick", Clear );
 	}
