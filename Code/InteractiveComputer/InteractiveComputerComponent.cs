@@ -30,6 +30,7 @@ public sealed class InteractiveComputerComponent : Component
 	[Property] public float ScreenSaverDelaySeconds { get; set; } = 60f;
 	[Property] public Vector2 ScreenSaverLogoSize { get; set; } = new( 220f, 72f );
 	[Property] public Vector2 ScreenSaverVelocity { get; set; } = new( 160f, -120f );
+	[Property] public string ExitInteractionInputAction { get; set; } = "";
 	[Property] public bool InstallAllAppsWhenListIsEmpty { get; set; } = true;
 	[Property, TextArea] public string InstalledAppIds { get; set; } = "";
 	[Property] public string ExplorerArchivePath { get; set; } = "";
@@ -59,7 +60,9 @@ public sealed class InteractiveComputerComponent : Component
 		Runtime?.TickScreenSaver( Time.Delta, IsPlayerInteracting );
 		Runtime?.TickSystem( Time.Delta );
 
-		if ( IsPlayerInteracting && Input.Pressed( "escape" ) )
+		if ( IsPlayerInteracting &&
+			!string.IsNullOrWhiteSpace( ExitInteractionInputAction ) &&
+			Input.Pressed( ExitInteractionInputAction ) )
 			EndInteraction();
 	}
 
