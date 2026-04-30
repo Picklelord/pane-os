@@ -239,9 +239,9 @@ public sealed class InteractiveComputerComponent : Component
 			return state.ArchiveUserName;
 
 		var archiveUserNamePath = ResolveArchiveUserNamePath();
-		if ( File.Exists( archiveUserNamePath ) )
+		if ( ComputerSandboxStorage.FileExists( archiveUserNamePath ) )
 		{
-			var persistedValue = PaneArchiveFileSystem.NormalizeDisplayName( File.ReadAllText( archiveUserNamePath ).Trim() );
+			var persistedValue = PaneArchiveFileSystem.NormalizeDisplayName( ComputerSandboxStorage.ReadAllText( archiveUserNamePath ).Trim() );
 			if ( !string.IsNullOrWhiteSpace( persistedValue ) )
 			{
 				state.ArchiveUserName = persistedValue;
@@ -252,35 +252,21 @@ public sealed class InteractiveComputerComponent : Component
 
 		state.ArchiveUserName = ComputerArchiveUserPolicy.ResolveInitialUserName(
 			ResolveSteamDisplayName(),
-			Environment.GetEnvironmentVariable( "USERNAME" ) );
+			ComputerSandboxStorage.GetLocalUserNameFallback() );
 
-		var directory = Path.GetDirectoryName( archiveUserNamePath );
-		if ( !string.IsNullOrWhiteSpace( directory ) )
-			Directory.CreateDirectory( directory );
-
-		File.WriteAllText( archiveUserNamePath, state.ArchiveUserName );
+		ComputerSandboxStorage.WriteAllText( archiveUserNamePath, state.ArchiveUserName );
 		StoreState();
 		return state.ArchiveUserName;
 	}
 
 	internal string ResolveArchivePath()
 	{
-		if ( !string.IsNullOrWhiteSpace( ExplorerArchivePath ) )
-			return ExplorerArchivePath;
-
-		var basePath = Path.Combine(
-			Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData ),
-			"PaneOS",
-			"Saves" );
-
-		return Path.Combine( basePath, $"{ComputerId}.datc" );
+		return ComputerSandboxStorage.ResolveArchiveStoragePath( ComputerId, ExplorerArchivePath );
 	}
 
 	internal string ResolveArchiveUserNamePath()
 	{
-		var archivePath = ResolveArchivePath();
-		var directory = Path.GetDirectoryName( archivePath ) ?? ".";
-		return Path.Combine( directory, "paneos-user.txt" );
+		return ComputerSandboxStorage.ResolveArchiveUserNameStoragePath( ResolveArchivePath() );
 	}
 
 	private void ApplyCreationAppList( ComputerState state, bool loadedFromSavedState )

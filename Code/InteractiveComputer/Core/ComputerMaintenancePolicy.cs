@@ -54,7 +54,7 @@ public static class ComputerMaintenancePolicy
 			NotificationTitle = "PaneOS Update",
 			NotificationMessage = "System scan finished. The update report is ready in My Documents.",
 			FileName = "PaneOS Update Report.txt",
-			FileContent = string.Join( Environment.NewLine, lines )
+			FileContent = string.Join( "\n", lines )
 		};
 	}
 
@@ -80,7 +80,7 @@ public static class ComputerMaintenancePolicy
 			NotificationTitle = "Install Complete",
 			NotificationMessage = $"{safePackageName} is ready to use.",
 			FileName = $"{safePackageName} Setup Log.txt",
-			FileContent = string.Join( Environment.NewLine, lines )
+			FileContent = string.Join( "\n", lines )
 		};
 	}
 }

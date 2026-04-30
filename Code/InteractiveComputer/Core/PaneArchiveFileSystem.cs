@@ -280,11 +280,11 @@ public static class PaneArchiveFileSystem
 
 	private static List<ArchiveEntryModel> ReadEntries( string archivePath )
 	{
-		if ( !File.Exists( archivePath ) )
+		if ( !ComputerSandboxStorage.FileExists( archivePath ) )
 			return new List<ArchiveEntryModel>();
 
 		var entries = new List<ArchiveEntryModel>();
-		using var stream = File.Open( archivePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite );
+		using var stream = new MemoryStream( ComputerSandboxStorage.ReadAllBytes( archivePath ), writable: false );
 		using var archive = new ZipArchive( stream, ZipArchiveMode.Read );
 
 		foreach ( var entry in archive.Entries )
@@ -313,22 +313,22 @@ public static class PaneArchiveFileSystem
 
 	private static void WriteEntries( string archivePath, List<ArchiveEntryModel> entries )
 	{
-		var directory = Path.GetDirectoryName( archivePath );
-		if ( !string.IsNullOrWhiteSpace( directory ) )
-			Directory.CreateDirectory( directory );
-
-		using var stream = File.Open( archivePath, FileMode.Create, FileAccess.Write, FileShare.Read );
-		using var archive = new ZipArchive( stream, ZipArchiveMode.Create );
-
-		foreach ( var entry in entries.OrderBy( x => EncodePath( x.Segments, x.IsDirectory ), StringComparer.OrdinalIgnoreCase ) )
+		using var stream = new MemoryStream();
 		{
-			var zipEntry = archive.CreateEntry( EncodePath( entry.Segments, entry.IsDirectory ), CompressionLevel.Fastest );
-			if ( entry.IsDirectory )
-				continue;
+			using var archive = new ZipArchive( stream, ZipArchiveMode.Create, leaveOpen: true );
 
-			using var entryStream = zipEntry.Open();
-			entryStream.Write( entry.Content, 0, entry.Content.Length );
+			foreach ( var entry in entries.OrderBy( x => EncodePath( x.Segments, x.IsDirectory ), StringComparer.OrdinalIgnoreCase ) )
+			{
+				var zipEntry = archive.CreateEntry( EncodePath( entry.Segments, entry.IsDirectory ), CompressionLevel.Fastest );
+				if ( entry.IsDirectory )
+					continue;
+
+				using var entryStream = zipEntry.Open();
+				entryStream.Write( entry.Content, 0, entry.Content.Length );
+			}
 		}
+
+		ComputerSandboxStorage.WriteAllBytes( archivePath, stream.ToArray() );
 	}
 
 	private static void EnsureDirectory( List<ArchiveEntryModel> entries, params string[] segments )
