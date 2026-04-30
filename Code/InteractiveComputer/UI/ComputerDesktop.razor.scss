@@ -6,10 +6,7 @@
 	font-family: Tahoma, Arial, sans-serif;
 	font-size: 13px;
 	color: #111;
-	background-color: #1d617c;
-	background-image: url("/Assets/desktopbackground.png");
-	background-size: cover;
-	background-position: center;
+	background: linear-gradient(180deg, #2c7cb7 0%, #1b5f98 40%, #0b3868 100%);
 	pointer-events: all;
 	cursor: default;
 }
@@ -652,7 +649,7 @@
 .file-dialog-list {
 	flex-grow: 1;
 	flex-direction: column;
-	overflow: auto;
+	overflow: scroll;
 	background: #ffffff;
 }
 
