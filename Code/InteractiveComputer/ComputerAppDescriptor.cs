@@ -26,6 +26,10 @@ public sealed class ComputerAppDescriptor
 	public bool RunOnStartup { get; init; }
 	public bool IsBackgroundProcess { get; init; }
 	public bool SingleInstance { get; init; } = true;
+	public int DefaultWindowOffsetX { get; init; } = 70;
+	public int DefaultWindowOffsetY { get; init; } = 54;
+	public int? DefaultWindowWidth { get; init; }
+	public int? DefaultWindowHeight { get; init; }
 	public required Func<IComputerApp> Factory { get; init; }
 
 	public string ResolvedExecutableName => !string.IsNullOrWhiteSpace( ExecutableName )

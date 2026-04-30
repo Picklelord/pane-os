@@ -806,17 +806,17 @@ public sealed class ComputerRuntime
 		}
 
 		var visibleWindowCount = State.OpenApps.Count( x => GetDescriptor( x.AppId )?.HasWindow == true );
-		var offset = visibleWindowCount * 22;
+		var initialBounds = ComputerWindowLayoutPolicy.ResolveInitialBounds( descriptor, State.ResolutionX, State.ResolutionY, visibleWindowCount );
 		var appState = new ComputerAppState
 		{
 			InstanceId = Guid.NewGuid().ToString( "N" ),
 			AppId = descriptor.Id,
 			Title = descriptor.Title,
 			Icon = descriptor.Icon,
-			X = 70 + offset,
-			Y = 54 + offset,
-			Width = Math.Min( 620, Math.Max( 420, State.ResolutionX - 150 ) ),
-			Height = Math.Min( 420, Math.Max( 280, State.ResolutionY - 170 ) ),
+			X = initialBounds.X,
+			Y = initialBounds.Y,
+			Width = initialBounds.Width,
+			Height = initialBounds.Height,
 			ZIndex = ++nextZIndex,
 			Status = ComputerProcessStatus.Running,
 			Data = initialData is null ? new Dictionary<string, string>() : new Dictionary<string, string>( initialData )

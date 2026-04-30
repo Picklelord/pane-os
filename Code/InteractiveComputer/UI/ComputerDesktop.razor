@@ -14,7 +14,7 @@
 }
 
 <root class="computer-root @(Runtime.State.IsSleeping ? "is-sleeping" : "") @(!ShouldShowDesktop ? "is-hidden" : "")"
-	  style="width: 100%; height: 100%; @GetDesktopBackgroundStyle()">
+	  style="@GetDesktopRootStyle()">
 	@if ( ShouldShowDesktop )
 	{
 		<div class="desktop" onclick="@CloseStartMenu">
@@ -686,10 +686,18 @@
 
 	private Vector2 GetLocalMousePosition( MousePanelEvent? e = null )
 	{
-		if ( e is not null )
-			return e.LocalPosition;
+		if ( Panel is not null )
+			return Panel.MousePosition;
 
-		return Panel?.MousePosition ?? Vector2.Zero;
+		return e?.LocalPosition ?? Vector2.Zero;
+	}
+
+	private string GetDesktopRootStyle()
+	{
+		if ( Runtime is null )
+			return "width: 100%; height: 100%;";
+
+		return $"width: {Runtime.State.ResolutionX}px; height: {Runtime.State.ResolutionY}px; {GetDesktopBackgroundStyle()}";
 	}
 
 	private string GetDesktopBackgroundStyle()

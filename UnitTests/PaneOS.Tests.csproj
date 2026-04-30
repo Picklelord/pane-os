@@ -18,6 +18,7 @@
     <Compile Include="..\Code\InteractiveComputer\Core\ComputerResolutionPolicy.cs" Link="PaneOS\ComputerResolutionPolicy.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\ComputerSandboxStorage.cs" Link="PaneOS\ComputerSandboxStorage.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\ComputerWallpaperPolicy.cs" Link="PaneOS\ComputerWallpaperPolicy.cs" />
+    <Compile Include="..\Code\InteractiveComputer\Core\ComputerWindowLayoutPolicy.cs" Link="PaneOS\ComputerWindowLayoutPolicy.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\DesktopShortcutLayoutPolicy.cs" Link="PaneOS\DesktopShortcutLayoutPolicy.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\PaneArchiveFileSystem.cs" Link="PaneOS\PaneArchiveFileSystem.cs" />
     <Compile Include="..\Code\InteractiveComputer\Core\RidgeBrowserPolicy.cs" Link="PaneOS\RidgeBrowserPolicy.cs" />

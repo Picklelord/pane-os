@@ -35,6 +35,7 @@ var tests = new (string Name, Action Body)[]
 	("Missing executables are flagged as corrupted applications", MissingExecutablesAreRejected),
 	("Desktop shortcut layout wraps into additional columns", DesktopShortcutLayoutWrapsColumns),
 	("Desktop selection rectangle captures intersecting shortcuts", DesktopSelectionCapturesIntersectingShortcuts),
+	("Window layout policy honors app defaults and cascades offsets", WindowLayoutPolicyHonorsDescriptorDefaults),
 	("Maintenance policy generates visible update and install logs", MaintenancePolicyGeneratesLogs),
 	("Resolution policy prefers game settings by default and clamps minimum sizes", ResolutionPolicyUsesGameSettingsWhenEnabled),
 	("Computer state defaults include screensaver and app lists", ComputerStateDefaults),
@@ -477,6 +478,28 @@ static void DesktopSelectionCapturesIntersectingShortcuts()
 	True( selected.Contains( "a" ) );
 	True( selected.Contains( "b" ) );
 	False( selected.Contains( "c" ) );
+}
+
+static void WindowLayoutPolicyHonorsDescriptorDefaults()
+{
+	var descriptor = new ComputerAppDescriptor
+	{
+		Id = "system.calc",
+		Title = "Calculator",
+		Icon = "CA",
+		DefaultWindowOffsetX = 32,
+		DefaultWindowOffsetY = 24,
+		DefaultWindowWidth = 320,
+		DefaultWindowHeight = 360,
+		Factory = () => new StubComputerApp()
+	};
+
+	var bounds = ComputerWindowLayoutPolicy.ResolveInitialBounds( descriptor, 1024, 768, 2 );
+
+	Equal( 76, bounds.X );
+	Equal( 68, bounds.Y );
+	Equal( 320, bounds.Width );
+	Equal( 360, bounds.Height );
 }
 
 static void MaintenancePolicyGeneratesLogs()
