@@ -1,6 +1,7 @@
 using System;
 using Sandbox;
 using Sandbox.UI;
+using PaneOS.InteractiveComputer.Core;
 
 namespace PaneOS.InteractiveComputer.Apps;
 
@@ -19,13 +20,25 @@ public sealed class PaintApp : IComputerApp
 }
 
 [StyleSheet( "InteractiveComputerApps.scss" )]
-public sealed class PaintPanel : Panel
+public sealed class PaintPanel : ComputerWarmupPanel
 {
-	private readonly PaintCanvas canvas;
+	private PaintCanvas canvas = null!;
+	private int brushSize = 16;
 
 	public PaintPanel()
 	{
 		AddClass( "paint-app" );
+		BuildUi();
+	}
+
+	protected override void WarmupRefresh()
+	{
+		BuildUi();
+	}
+
+	private void BuildUi()
+	{
+		DeleteChildren( true );
 
 		var toolbar = new Panel { Parent = this };
 		toolbar.AddClass( "paint-toolbar" );
@@ -40,10 +53,25 @@ public sealed class PaintPanel : Panel
 
 		var clearButton = new Button( "Clear" ) { Parent = toolbar };
 		clearButton.AddClass( "paint-clear" );
+		var smallerBrushButton = new Button( "-" ) { Parent = toolbar };
+		smallerBrushButton.AddClass( "paint-clear" );
+		smallerBrushButton.AddEventListener( "onclick", () => SetBrushSize( brushSize - 2 ) );
+		var largerBrushButton = new Button( "+" ) { Parent = toolbar };
+		largerBrushButton.AddClass( "paint-clear" );
+		largerBrushButton.AddEventListener( "onclick", () => SetBrushSize( brushSize + 2 ) );
+		var sizeLabel = new Label( $"Brush {brushSize}px" ) { Parent = toolbar };
+		sizeLabel.AddClass( "paint-size-label" );
 
 		canvas = new PaintCanvas { Parent = this };
 		canvas.AddClass( "paint-canvas" );
+		canvas.BrushSize = brushSize;
 		clearButton.AddEventListener( "onclick", canvas.ClearDots );
+	}
+
+	private void SetBrushSize( int nextSize )
+	{
+		brushSize = Math.Clamp( nextSize, 4, 36 );
+		BuildUi();
 	}
 }
 
@@ -53,6 +81,7 @@ public sealed class PaintCanvas : Panel
 	private Vector2? lastPaintPosition;
 
 	public string CurrentColor { get; set; } = "#1982c4";
+	public int BrushSize { get; set; } = 16;
 
 	protected override void OnMouseDown( MousePanelEvent e )
 	{
@@ -69,20 +98,9 @@ public sealed class PaintCanvas : Panel
 		if ( !isPainting )
 			return;
 
-		if ( lastPaintPosition.HasValue )
+		foreach ( var point in ComputerPaintStrokePolicy.BuildStampPositions( lastPaintPosition, e.LocalPosition, MathF.Max( 2f, BrushSize * 0.35f ) ) )
 		{
-			var delta = e.LocalPosition - lastPaintPosition.Value;
-			var distance = delta.Length;
-			var steps = Math.Max( 1, (int)(distance / 6f) );
-			for ( var step = 1; step <= steps; step++ )
-			{
-				var t = step / (float)steps;
-				StampDot( lastPaintPosition.Value + delta * t );
-			}
-		}
-		else
-		{
-			StampDot( e.LocalPosition );
+			StampDot( point );
 		}
 
 		lastPaintPosition = e.LocalPosition;
@@ -104,8 +122,11 @@ public sealed class PaintCanvas : Panel
 	{
 		var dot = new Panel { Parent = this };
 		dot.AddClass( "paint-dot" );
-		dot.Style.Left = Length.Pixels( position.x - 8f );
-		dot.Style.Top = Length.Pixels( position.y - 8f );
+		var radius = BrushSize * 0.5f;
+		dot.Style.Left = Length.Pixels( position.x - radius );
+		dot.Style.Top = Length.Pixels( position.y - radius );
+		dot.Style.Width = Length.Pixels( BrushSize );
+		dot.Style.Height = Length.Pixels( BrushSize );
 		dot.Style.BackgroundColor = Color.Parse( CurrentColor );
 	}
 }

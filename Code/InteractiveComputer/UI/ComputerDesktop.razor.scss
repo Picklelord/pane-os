@@ -11,6 +11,21 @@
 	cursor: default;
 }
 
+.wallpaper-image-layer {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 100%;
+	height: 100%;
+	background-image: url("textures/desktopbackground.png");
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+	transform: translate(-50%, -50%) rotate(-90deg);
+	transform-origin: center;
+	pointer-events: none;
+}
+
 .computer-root.is-hidden {
 	opacity: 0;
 	pointer-events: none;
@@ -115,6 +130,10 @@
 	box-shadow: 3px 4px 9px #22344e;
 }
 
+.xp-window.minimized {
+	display: none;
+}
+
 .xp-window.focused {
 	border-color: #0c3d96;
 	border-top-color: #2f8cff;
@@ -207,6 +226,13 @@
 	border-top: 1px solid #ffffff;
 	cursor: nwse-resize;
 	z-index: 2;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.xp-window.focused .window-resize-grip {
+	opacity: 1;
+	pointer-events: all;
 }
 
 .window-input-overlay {
@@ -551,7 +577,12 @@
 .screen-saver-logo-image {
 	width: 100%;
 	height: 100%;
-	object-fit: contain;
+	background-image: url("textures/paneos.png");
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+	transform: rotate(-90deg);
+	transform-origin: center;
 }
 
 .message-box-overlay {
