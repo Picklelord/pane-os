@@ -106,7 +106,8 @@
 					if ( !app.Descriptor.HasWindow || app.State.IsMinimized )
 						continue;
 
-					<div class="xp-window @(Runtime.FocusedApp == app ? "focused" : "") @(Runtime.GetEffectiveStatus( app.State.InstanceId ) == ComputerProcessStatus.NotResponding ? "not-responding" : "")"
+					<div @key="app.State.InstanceId"
+						 class="xp-window @(Runtime.FocusedApp == app ? "focused" : "") @(Runtime.GetEffectiveStatus( app.State.InstanceId ) == ComputerProcessStatus.NotResponding ? "not-responding" : "")"
 						 style="left: @(app.State.X)px; top: @(app.State.Y)px; width: @(app.State.Width)px; height: @(app.State.Height)px; z-index: @(app.State.ZIndex);"
 						 onclick="@(() => Focus( app.State.InstanceId ))">
 						<div class="title-bar">
@@ -125,7 +126,7 @@
 								}
 							</div>
 						</div>
-						<ComputerAppHost Instance=@app />
+						<ComputerAppHost @key="app.State.InstanceId" Instance=@app />
 						<div class="window-resize-grip"></div>
 						@if ( Runtime.ShouldBlockInput( app.State.InstanceId ) )
 						{

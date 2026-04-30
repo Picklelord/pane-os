@@ -26,15 +26,37 @@
 		base.OnAfterTreeRender( firstTime );
 		AddClass( "app-host" );
 
-		if ( Instance?.Session.Content is null )
+		if ( Instance?.Session.Content is null || Instance.State is null )
 			return;
 
-		if ( mountedInstanceId == Instance.State.InstanceId && Instance.Session.Content.Parent == this )
+		var content = Instance.Session.Content;
+		if ( ReferenceEquals( content, this ) || WouldCreateParentCycle( content ) )
 			return;
 
-		if ( Instance.Session.Content != this && Instance.Session.Content.Parent != this )
-			Instance.Session.Content.Parent = this;
+		try
+		{
+			if ( mountedInstanceId == Instance.State.InstanceId && ReferenceEquals( content.Parent, this ) )
+				return;
 
-		mountedInstanceId = Instance.State.InstanceId;
+			if ( !ReferenceEquals( content.Parent, this ) )
+				content.Parent = this;
+
+			mountedInstanceId = Instance.State.InstanceId;
+		}
+		catch ( Exception ex )
+		{
+			Log.Warning( $"PaneOS app host mount skipped: {ex.Message}" );
+		}
+	}
+
+	private bool WouldCreateParentCycle( Panel content )
+	{
+		for ( Panel? ancestor = this; ancestor is not null; ancestor = ancestor.Parent )
+		{
+			if ( ReferenceEquals( ancestor, content ) )
+				return true;
+		}
+
+		return false;
 	}
 }
