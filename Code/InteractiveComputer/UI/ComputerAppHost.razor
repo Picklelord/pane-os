@@ -1,19 +1,14 @@
 @namespace PaneOS.InteractiveComputer
 @using PaneOS.InteractiveComputer
-@using System.Linq
 @using Microsoft.AspNetCore.Components
 @using Sandbox
 @using Sandbox.UI
 @inherits Panel
 
-<root class="app-host"></root>
-
 @code
 {
 	[Parameter] public ComputerRunningApp? Instance { get; set; }
 	private string? mountedInstanceId;
-
-	private Panel HostPanel => Children.FirstOrDefault() ?? this;
 
 	protected override int BuildHash()
 	{
@@ -29,16 +24,16 @@
 	protected override void OnAfterTreeRender( bool firstTime )
 	{
 		base.OnAfterTreeRender( firstTime );
+		AddClass( "app-host" );
 
 		if ( Instance?.Session.Content is null )
 			return;
 
-		var hostPanel = HostPanel;
-		if ( mountedInstanceId == Instance.State.InstanceId && Instance.Session.Content.Parent == hostPanel )
+		if ( mountedInstanceId == Instance.State.InstanceId && Instance.Session.Content.Parent == this )
 			return;
 
-		if ( Instance.Session.Content.Parent != hostPanel )
-			Instance.Session.Content.Parent = hostPanel;
+		if ( Instance.Session.Content != this && Instance.Session.Content.Parent != this )
+			Instance.Session.Content.Parent = this;
 
 		mountedInstanceId = Instance.State.InstanceId;
 	}

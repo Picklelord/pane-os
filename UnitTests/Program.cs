@@ -309,7 +309,7 @@ static void WallpaperPolicyNormalizesKnownValues()
 static void WallpaperPolicyUsesDesktopImageByDefault()
 {
 	var style = ComputerWallpaperPolicy.GetBackgroundStyle( "default" );
-	AssertContains( "/Assets/desktopBackground.png", style );
+	AssertContains( "/assets/desktopbackground.png", style );
 	AssertContains( "background-size: cover", style );
 }
 

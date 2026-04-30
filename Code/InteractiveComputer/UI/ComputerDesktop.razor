@@ -14,7 +14,7 @@
 }
 
 <root class="computer-root @(Runtime.State.IsSleeping ? "is-sleeping" : "") @(!ShouldShowDesktop ? "is-hidden" : "")"
-	  style="@GetDesktopRootStyle()">
+	  style="width: 100%; height: 100%; @GetDesktopBackgroundStyle()">
 	@if ( ShouldShowDesktop )
 	{
 		<div class="desktop" onclick="@CloseStartMenu">
@@ -46,7 +46,7 @@
 			{
 				<div class="boot-overlay">
 					<div class="boot-card">
-						<img class="boot-logo-image" src="/Assets/PaneOS.png" />
+						<div class="system-logo-badge large">PaneOS</div>
 						<label>PaneOS</label>
 						<span>Starting up...</span>
 					</div>
@@ -77,11 +77,6 @@
 						</div>
 					}
 				</div>
-
-				@if ( isSelectingDesktop )
-				{
-					<div class="desktop-selection-box" style="@GetDesktopSelectionStyle()"></div>
-				}
 
 				@if ( desktopContextMenuShortcutId is not null )
 				{
@@ -296,7 +291,7 @@
 			var saver = Runtime.State.ScreenSaver;
 			<div class="screen-saver" onclick="@ScreenSaverActivity">
 				<div class="screen-saver-logo" style="@GetScreenSaverLogoStyle( saver )">
-					<img class="screen-saver-logo-image" src="/Assets/PaneOS.png" />
+					<div class="system-logo-badge large">PaneOS</div>
 				</div>
 			</div>
 		}
@@ -325,9 +320,6 @@
 	private Vector2 resizingStartMouse;
 	private Vector2 resizingStartSize;
 	private bool wasDraggingWindow;
-	private bool isSelectingDesktop;
-	private Vector2 desktopSelectionStart;
-	private Vector2 desktopSelectionCurrent;
 	private Vector2 desktopContextMenuPosition;
 	private string? desktopContextMenuShortcutId;
 	private string? lastDesktopShortcutClickedId;
@@ -555,9 +547,6 @@
 
 		HideDesktopContextMenu();
 		selectedDesktopShortcutIds.Clear();
-		isSelectingDesktop = true;
-		desktopSelectionStart = localMousePosition;
-		desktopSelectionCurrent = desktopSelectionStart;
 		StateHasChanged();
 		e.StopPropagation();
 	}
@@ -573,14 +562,6 @@
 			return;
 		}
 
-		if ( isSelectingDesktop )
-		{
-			desktopSelectionCurrent = GetLocalMousePosition( e );
-			StateHasChanged();
-			e.StopPropagation();
-			return;
-		}
-
 		if ( draggingWindowId is null )
 			return;
 
@@ -591,15 +572,6 @@
 	protected override void OnMouseUp( MousePanelEvent e )
 	{
 		base.OnMouseUp( e );
-
-		if ( isSelectingDesktop )
-		{
-			isSelectingDesktop = false;
-			UpdateDesktopSelectionFromRectangle();
-			StateHasChanged();
-			e.StopPropagation();
-			return;
-		}
 
 		if ( draggingWindowId is null )
 		{
@@ -686,18 +658,10 @@
 
 	private Vector2 GetLocalMousePosition( MousePanelEvent? e = null )
 	{
-		if ( Panel is not null )
-			return Panel.MousePosition;
+		if ( e is not null )
+			return e.LocalPosition;
 
-		return e?.LocalPosition ?? Vector2.Zero;
-	}
-
-	private string GetDesktopRootStyle()
-	{
-		if ( Runtime is null )
-			return "width: 100%; height: 100%;";
-
-		return $"width: {Runtime.State.ResolutionX}px; height: {Runtime.State.ResolutionY}px; {GetDesktopBackgroundStyle()}";
+		return Panel?.MousePosition ?? Vector2.Zero;
 	}
 
 	private string GetDesktopBackgroundStyle()
@@ -849,32 +813,6 @@
 	private void HideDesktopContextMenu()
 	{
 		desktopContextMenuShortcutId = null;
-	}
-
-	private string GetDesktopSelectionStyle()
-	{
-		var selection = DesktopShortcutSelectionRect.FromCorners(
-			desktopSelectionStart.x,
-			desktopSelectionStart.y,
-			desktopSelectionCurrent.x,
-			desktopSelectionCurrent.y );
-		return $"left: {selection.Left}px; top: {selection.Top}px; width: {selection.Right - selection.Left}px; height: {selection.Bottom - selection.Top}px;";
-	}
-
-	private void UpdateDesktopSelectionFromRectangle()
-	{
-		selectedDesktopShortcutIds.Clear();
-		var selection = DesktopShortcutSelectionRect.FromCorners(
-			desktopSelectionStart.x,
-			desktopSelectionStart.y,
-			desktopSelectionCurrent.x,
-			desktopSelectionCurrent.y );
-		var selectedIds = DesktopShortcutLayoutPolicy.SelectIntersectingShortcutIds(
-			GetDesktopShortcuts().Select( x => new DesktopShortcutLayoutItem { Id = x.Id, Index = x.Index } ),
-			selection,
-			Runtime?.State.ResolutionY ?? 768 );
-		foreach ( var shortcutId in selectedIds )
-			selectedDesktopShortcutIds.Add( shortcutId );
 	}
 
 	private void PromptRenameSelectedDesktopShortcut()
