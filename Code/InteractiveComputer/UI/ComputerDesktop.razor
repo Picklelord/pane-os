@@ -664,10 +664,24 @@
 			var screenPosition = e.Target is not null
 				? e.Target.PanelPositionToScreenPosition( e.LocalPosition )
 				: e.LocalPosition;
-			return Panel.ScreenPositionToPanelPosition( screenPosition );
+			return NormalizeMouseToDesktopSpace( Panel.ScreenPositionToPanelPosition( screenPosition ) );
 		}
 
-		return Panel?.MousePosition ?? Vector2.Zero;
+		return NormalizeMouseToDesktopSpace( Panel?.MousePosition ?? Vector2.Zero );
+	}
+
+	private Vector2 NormalizeMouseToDesktopSpace( Vector2 panelLocalPosition )
+	{
+		if ( Runtime is null || Panel is null )
+			return panelLocalPosition;
+
+		var rect = Panel.Box.Rect;
+		var width = MathF.Max( 1f, rect.Width );
+		var height = MathF.Max( 1f, rect.Height );
+
+		return new Vector2(
+			panelLocalPosition.x * Runtime.State.ResolutionX / width,
+			panelLocalPosition.y * Runtime.State.ResolutionY / height );
 	}
 
 	private string GetDesktopBackgroundStyle()
