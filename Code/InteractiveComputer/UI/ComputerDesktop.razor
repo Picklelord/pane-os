@@ -14,7 +14,7 @@
 }
 
 <root class="computer-root @(Runtime.State.IsSleeping ? "is-sleeping" : "") @(!ShouldShowDesktop ? "is-hidden" : "")"
-	  style="width: @(Runtime.State.ResolutionX)px; height: @(Runtime.State.ResolutionY)px; @GetDesktopBackgroundStyle()">
+	  style="width: 100%; height: 100%; @GetDesktopBackgroundStyle()">
 	@if ( ShouldShowDesktop )
 	{
 		<div class="desktop" onclick="@CloseStartMenu">
@@ -350,6 +350,8 @@
 
 	protected override void OnUpdate()
 	{
+		EnsureAttachedPanelMatchesResolution();
+
 		if ( draggingWindowId is not null )
 		{
 			ContinueWindowDrag( GetLocalMousePosition() );
@@ -953,6 +955,22 @@
 	private static string GetScreenSaverLogoStyle( ComputerScreenSaverState saver )
 	{
 		return $"left: {saver.LogoX}px; top: {saver.LogoY}px; width: {saver.LogoWidth}px; height: {saver.LogoHeight}px;";
+	}
+
+	private void EnsureAttachedPanelMatchesResolution()
+	{
+		if ( Runtime is null )
+			return;
+
+		var worldPanel = GameObject.Components.Get<Sandbox.WorldPanel>( FindMode.InSelf );
+		if ( worldPanel is null )
+			return;
+
+		var targetSize = new Vector2( Runtime.State.ResolutionX, Runtime.State.ResolutionY );
+		if ( worldPanel.PanelSize == targetSize )
+			return;
+
+		worldPanel.PanelSize = targetSize;
 	}
 
 	private sealed class DesktopShortcutItem

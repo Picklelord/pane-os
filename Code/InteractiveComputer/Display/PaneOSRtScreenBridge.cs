@@ -25,11 +25,18 @@ public sealed class PaneOSRtScreenBridge : Component
 	public GameObject? PaneOSScreenObject { get; private set; }
 	public CameraComponent? SourceCamera { get; private set; }
 	public Texture? RenderTarget { get; private set; }
+	private Vector2? lastResolvedResolution;
 
 	protected override void OnStart()
 	{
 		base.OnStart();
 		Setup();
+	}
+
+	protected override void OnUpdate()
+	{
+		base.OnUpdate();
+		SyncLiveResolution();
 	}
 
 	protected override void OnValidate()
@@ -63,6 +70,7 @@ public sealed class PaneOSRtScreenBridge : Component
 		Computer = computer;
 		var screenObject = ResolvePaneOSScreenObject( display, computer );
 		ResolveCameraSource( display, computer );
+		lastResolvedResolution = ResolveResolution( computer );
 		WarnIfRtScreenNeedsManualSetup( screenObject );
 	}
 
@@ -129,6 +137,32 @@ public sealed class PaneOSRtScreenBridge : Component
 		camera.CustomSize = targetSize;
 		SourceCamera = camera;
 		return camera;
+	}
+
+	private void SyncLiveResolution()
+	{
+		if ( Computer is null )
+			return;
+
+		var resolution = ResolveResolution( Computer );
+		if ( lastResolvedResolution.HasValue && lastResolvedResolution.Value == resolution )
+			return;
+
+		lastResolvedResolution = resolution;
+
+		if ( PaneOSScreenObject is not null && EnsureWorldPanel )
+		{
+			var worldPanel = PaneOSScreenObject.Components.Get<WorldPanel>( FindMode.InSelf );
+			if ( worldPanel is not null )
+				worldPanel.PanelSize = resolution;
+		}
+
+		if ( SourceCamera is not null )
+		{
+			RenderTarget = Texture.CreateRenderTarget( ResolveScreenId( Computer ), ImageFormat.RGBA8888, resolution, SourceCamera.RenderTarget );
+			SourceCamera.RenderTarget = RenderTarget;
+			SourceCamera.CustomSize = resolution;
+		}
 	}
 
 	private ComputerDesktop? ResolvePaneOSDesktopComponent( GameObject screen )

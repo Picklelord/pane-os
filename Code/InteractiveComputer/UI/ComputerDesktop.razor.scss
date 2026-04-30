@@ -12,8 +12,7 @@
 }
 
 .computer-root.is-hidden {
-	background-color: transparent;
-	background-image: none;
+	opacity: 0;
 	pointer-events: none;
 }
 
@@ -24,10 +23,6 @@
 	top: 0;
 	bottom: 32px;
 	overflow: hidden;
-}
-
-.desktop-hidden {
-	background: transparent;
 }
 
 .shortcut-grid {
@@ -46,20 +41,20 @@
 	justify-content: flex-start;
 	flex-direction: column;
 	padding: 4px;
-	border: 1px solid transparent;
+	border: 1px solid #2c7cb7;
 	border-radius: 2px;
 	color: white;
-	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+	text-shadow: 1px 1px 1px #0f2d53;
 }
 
 .desktop-shortcut:hover {
-	background-color: rgba(49, 106, 197, 0.42);
-	border-color: rgba(255, 255, 255, 0.45);
+	background-color: #316ac5;
+	border-color: #d9ebff;
 }
 
 .desktop-shortcut.selected {
-	background-color: rgba(49, 106, 197, 0.52);
-	border-color: rgba(255, 255, 255, 0.7);
+	background-color: #2a5cab;
+	border-color: #ffffff;
 }
 
 .desktop-icon {
@@ -68,7 +63,7 @@
 	margin-bottom: 4px;
 	align-items: center;
 	justify-content: center;
-	border: 1px solid rgba(255, 255, 255, 0.7);
+	border: 1px solid #d9ebff;
 	border-radius: 4px;
 	background: linear-gradient(180deg, #ffffff, #7db7e8 52%, #2256b1);
 	color: #083b7a;
@@ -86,8 +81,9 @@
 
 .desktop-selection-box {
 	position: absolute;
-	border: 1px solid rgba(133, 181, 255, 0.95);
-	background: rgba(91, 153, 255, 0.18);
+	border: 1px solid #85b5ff;
+	background-color: #5b99ff;
+	opacity: 0.18;
 	z-index: 4;
 }
 
@@ -97,7 +93,7 @@
 	flex-direction: column;
 	border: 1px solid #8ea1bf;
 	background: #ffffff;
-	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+	box-shadow: 0 8px 18px #1c2b40;
 	z-index: 12000;
 }
 
@@ -122,7 +118,7 @@
 	border-top-color: #2e7df0;
 	border-left-color: #2e7df0;
 	background-color: #ece9d8;
-	box-shadow: 3px 4px 9px rgba(0, 0, 0, 0.45);
+	box-shadow: 3px 4px 9px #22344e;
 }
 
 .xp-window.focused {
@@ -145,7 +141,7 @@
 	background: linear-gradient(90deg, #0d3a95, #2f87ff 58%, #54a3ff);
 	color: white;
 	font-weight: 700;
-	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.55);
+	text-shadow: 1px 1px 1px #10284d;
 	cursor: move;
 }
 
@@ -198,8 +194,9 @@
 	bottom: 0;
 	width: 18px;
 	height: 18px;
-	background:
-		linear-gradient(135deg, transparent 0 52%, rgba(19, 70, 145, 0.78) 52% 58%, transparent 58% 68%, rgba(19, 70, 145, 0.78) 68% 74%, transparent 74%);
+	background-color: #7da3d8;
+	border-left: 1px solid #ffffff;
+	border-top: 1px solid #ffffff;
 	cursor: nwse-resize;
 	z-index: 2;
 }
@@ -212,7 +209,8 @@
 	bottom: 3px;
 	align-items: center;
 	justify-content: center;
-	background: rgba(238, 240, 244, 0.52);
+	background-color: #eef0f4;
+	opacity: 0.82;
 	color: #2f4977;
 	font-weight: 700;
 	z-index: 3;
@@ -242,7 +240,7 @@
 	color: white;
 	font-weight: 700;
 	font-style: italic;
-	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.65);
+	text-shadow: 1px 1px 1px #203e1d;
 }
 
 .start-button span {
@@ -251,7 +249,7 @@
 	align-items: center;
 	justify-content: center;
 	border-radius: 3px;
-	background-color: rgba(255, 255, 255, 0.24);
+	background-color: #84c774;
 	font-style: normal;
 }
 
@@ -274,7 +272,7 @@
 	padding: 0 8px;
 	align-items: center;
 	gap: 6px;
-	border: 1px solid rgba(255, 255, 255, 0.35);
+	border: 1px solid #b8d6ff;
 	border-radius: 2px;
 	background: linear-gradient(180deg, #4d96f2, #1b62cb);
 	color: white;
@@ -297,7 +295,7 @@
 	justify-content: center;
 	gap: 6px;
 	background: linear-gradient(180deg, #20a8e9, #0d73bc);
-	border-left: 1px solid rgba(255, 255, 255, 0.45);
+	border-left: 1px solid #b8d6ff;
 	font-size: 12px;
 }
 
@@ -332,7 +330,7 @@
 	flex-direction: column;
 	background: #f4f0e4;
 	border: 2px solid #1a55bb;
-	box-shadow: 4px 5px 12px rgba(0, 0, 0, 0.45);
+	box-shadow: 4px 5px 12px #22344e;
 }
 
 .start-header {
@@ -351,7 +349,7 @@
 	height: 42px;
 	align-items: center;
 	justify-content: center;
-	border: 2px solid rgba(255, 255, 255, 0.82);
+	border: 2px solid #ffffff;
 	border-radius: 5px;
 	background: linear-gradient(180deg, #ffffff, #69afe7);
 	color: #15498f;
@@ -471,7 +469,7 @@
 	bottom: 0;
 	align-items: center;
 	justify-content: center;
-	background: radial-gradient(circle at center, #214c8b 0%, #0a1325 72%);
+	background: linear-gradient(180deg, #214c8b 0%, #0a1325 100%);
 	color: white;
 	z-index: 22000;
 }
@@ -483,8 +481,8 @@
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
-	border: 1px solid rgba(255, 255, 255, 0.16);
-	background: rgba(6, 14, 28, 0.38);
+	border: 1px solid #496f9f;
+	background: #101928;
 }
 
 .restart-overlay {
@@ -503,9 +501,9 @@
 	width: 100%;
 	height: 100%;
 	flex-direction: column;
-	border: 1px solid rgba(90, 255, 90, 0.28);
+	border: 1px solid #5aff5a;
 	padding: 16px 18px;
-	background: rgba(0, 12, 0, 0.72);
+	background: #001000;
 	font-family: Consolas, monospace;
 }
 
@@ -556,7 +554,8 @@
 	bottom: 32px;
 	align-items: center;
 	justify-content: center;
-	background: rgba(17, 24, 38, 0.35);
+	background: #111826;
+	opacity: 0.96;
 	z-index: 25000;
 }
 
@@ -575,8 +574,8 @@
 	padding: 10px;
 	gap: 10px;
 	border: 1px solid #8ca7d7;
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(232, 240, 255, 0.96));
-	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+	background: linear-gradient(180deg, #ffffff, #e8f0ff);
+	box-shadow: 0 8px 18px #253a56;
 }
 
 .notification-icon {
@@ -612,7 +611,7 @@
 	flex-direction: column;
 	border: 2px solid #2256aa;
 	background: #ece9d8;
-	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+	box-shadow: 0 12px 28px #253a56;
 }
 
 .file-dialog-window {
@@ -621,7 +620,7 @@
 	flex-direction: column;
 	border: 2px solid #2256aa;
 	background: #ece9d8;
-	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+	box-shadow: 0 12px 28px #253a56;
 }
 
 .file-dialog-toolbar {
