@@ -357,7 +357,12 @@ public sealed class ComputerRuntime
 	public void RefreshWindowAppSessions()
 	{
 		foreach ( var app in OpenApps.Where( x => x.Descriptor.HasWindow && !x.State.IsMinimized ).ToArray() )
+		{
+			if ( app.State.AppId.Equals( "system.ridge", StringComparison.OrdinalIgnoreCase ) && app.Session.Content.IsValid )
+				continue;
+
 			RefreshRunningAppSession( app );
+		}
 	}
 
 	public void Restart()

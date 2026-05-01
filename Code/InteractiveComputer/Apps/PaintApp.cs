@@ -86,12 +86,13 @@ public sealed class PaintCanvas : Panel
 	protected override void OnMouseDown( MousePanelEvent e )
 	{
 		base.OnMouseDown( e );
-		if ( !IsInsideCanvas( e.LocalPosition ) )
+		var position = GetCanvasMousePosition( e );
+		if ( !IsInsideCanvas( position ) )
 			return;
 
 		isPainting = true;
-		lastPaintPosition = e.LocalPosition;
-		StampDot( e.LocalPosition );
+		lastPaintPosition = position;
+		StampDot( position );
 	}
 
 	protected override void OnMouseMove( MousePanelEvent e )
@@ -101,19 +102,20 @@ public sealed class PaintCanvas : Panel
 		if ( !isPainting )
 			return;
 
-		if ( !IsInsideCanvas( e.LocalPosition ) )
+		var position = GetCanvasMousePosition( e );
+		if ( !IsInsideCanvas( position ) )
 		{
 			isPainting = false;
 			lastPaintPosition = null;
 			return;
 		}
 
-		foreach ( var point in ComputerPaintStrokePolicy.BuildStampPositions( lastPaintPosition, e.LocalPosition, MathF.Max( 2f, BrushSize * 0.35f ) ) )
+		foreach ( var point in ComputerPaintStrokePolicy.BuildStampPositions( lastPaintPosition, position, MathF.Max( 2f, BrushSize * 0.35f ) ) )
 		{
 			StampDot( point );
 		}
 
-		lastPaintPosition = e.LocalPosition;
+		lastPaintPosition = position;
 	}
 
 	protected override void OnMouseUp( MousePanelEvent e )
@@ -150,5 +152,13 @@ public sealed class PaintCanvas : Panel
 			position.y >= 0f &&
 			position.x <= rect.Width &&
 			position.y <= rect.Height;
+	}
+
+	private Vector2 GetCanvasMousePosition( MousePanelEvent e )
+	{
+		var screenPosition = e.Target is not null
+			? e.Target.PanelPositionToScreenPosition( e.LocalPosition )
+			: e.LocalPosition;
+		return ScreenPositionToPanelPosition( screenPosition );
 	}
 }

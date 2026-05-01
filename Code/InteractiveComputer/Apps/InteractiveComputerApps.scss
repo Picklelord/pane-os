@@ -293,6 +293,7 @@
 	width: 16px;
 	height: 16px;
 	border-radius: 999px;
+	pointer-events: none;
 }
 
 .media-player-app {
@@ -716,7 +717,9 @@
 	flex-grow: 1;
 	padding: 0 8px;
 	align-items: center;
+	justify-content: flex-start;
 	min-width: 0;
+	text-align: left;
 }
 
 .task-header-cell {
@@ -733,7 +736,7 @@
 .task-action-cell {
 	flex-grow: 0;
 	width: 78px;
-	justify-content: center;
+	justify-content: flex-start;
 }
 
 .task-kill-button {
@@ -742,6 +745,14 @@
 	border: 1px solid #9f4a3f;
 	background: linear-gradient(180deg, #fff8f4, #e9c6be);
 	color: #7d2419;
+}
+
+.task-kill-button.disabled {
+	opacity: 0.4;
+	background: #e5e5e5;
+	color: #666666;
+	border-color: #aaaaaa;
+	pointer-events: none;
 }
 
 .perf-grid {
@@ -895,6 +906,7 @@
 .explorer-context-menu-host {
 	position: absolute;
 	z-index: 5;
+	pointer-events: none;
 }
 
 .explorer-list {
@@ -981,6 +993,7 @@
 	border: 1px solid #8ea1bf;
 	background: #ffffff;
 	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+	pointer-events: all;
 }
 
 .explorer-context-button {

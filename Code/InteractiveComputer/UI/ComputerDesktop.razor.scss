@@ -89,6 +89,13 @@
 	text-shadow: none;
 }
 
+.desktop-icon.has-texture {
+	border: 0;
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
 .desktop-shortcut label {
 	width: 78px;
 	text-align: center;

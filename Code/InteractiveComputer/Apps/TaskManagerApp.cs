@@ -29,8 +29,8 @@ public sealed class TaskManagerPanel : ComputerWarmupPanel
 	private readonly Button performanceButton;
 	private readonly Button storageButton;
 	private TaskManagerTab activeTab = TaskManagerTab.Processes;
-	private TaskManagerProcessSortField sortField = TaskManagerProcessSortField.Cpu;
-	private bool sortDescending = true;
+	private TaskManagerProcessSortField sortField = TaskManagerProcessSortField.Process;
+	private bool sortDescending;
 	private int lastVersion = -1;
 
 	public TaskManagerPanel( ComputerAppContext context )
@@ -151,21 +151,24 @@ public sealed class TaskManagerPanel : ComputerWarmupPanel
 
 			AddCell( row, app.State.Title );
 			AddCell( row, app.Descriptor.ResolvedExecutableName );
-			AddCell( row, $"/C:/Apps/{app.Descriptor.Title}/{app.Descriptor.ResolvedExecutableName}" );
 			AddCell( row, FormatStatus( context.Runtime.GetEffectiveStatus( app.State.InstanceId ) ) );
 			AddCell( row, $"{metrics.CpuPercent:0.0}%" );
 			AddCell( row, $"{metrics.RamPercent:0.0}%" );
-			AddCell( row, app.Descriptor.RunOnStartup ? "Yes" : "No" );
 
 			var cell = new Panel { Parent = row };
 			cell.AddClass( "task-cell task-action-cell" );
 			var killButton = new Button( "Kill" ) { Parent = cell };
 			killButton.AddClass( "task-kill-button" );
-			killButton.AddEventListener( "onclick", () =>
+			var canKill = CanKillProcess( app );
+			killButton.SetClass( "disabled", !canKill );
+			if ( canKill )
 			{
-				context.Runtime.Close( app.State.InstanceId );
-				RenderActiveTab( true );
-			} );
+				killButton.AddEventListener( "onclick", () =>
+				{
+					context.Runtime.Close( app.State.InstanceId );
+					RenderActiveTab( true );
+				} );
+			}
 		}
 	}
 
@@ -239,11 +242,9 @@ public sealed class TaskManagerPanel : ComputerWarmupPanel
 		header.AddClass( "task-table-header" );
 		AddSortableHeaderCell( header, "Process", TaskManagerProcessSortField.Process );
 		AddHeaderCell( header, "Executable" );
-		AddHeaderCell( header, "Path" );
 		AddSortableHeaderCell( header, "Status", TaskManagerProcessSortField.Status );
 		AddSortableHeaderCell( header, "CPU % Used", TaskManagerProcessSortField.Cpu );
 		AddSortableHeaderCell( header, "RAM % Used", TaskManagerProcessSortField.Ram );
-		AddSortableHeaderCell( header, "Startup", TaskManagerProcessSortField.Startup );
 		AddHeaderCell( header, "Kill" );
 	}
 
@@ -307,6 +308,12 @@ public sealed class TaskManagerPanel : ComputerWarmupPanel
 			ComputerProcessStatus.Suspended => "Suspended",
 			_ => "Running"
 		};
+	}
+
+	private static bool CanKillProcess( ComputerRunningApp app )
+	{
+		return !app.Descriptor.ResolvedExecutableName.Equals( "PaneOS32.exe", StringComparison.OrdinalIgnoreCase ) &&
+			!app.Descriptor.ResolvedExecutableName.Equals( "PvcHost.exe", StringComparison.OrdinalIgnoreCase );
 	}
 
 	private int GetRefreshVersion()

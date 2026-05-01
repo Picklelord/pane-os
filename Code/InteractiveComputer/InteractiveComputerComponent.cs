@@ -40,6 +40,7 @@ public sealed class InteractiveComputerComponent : Component
 	public ComputerRuntime Runtime { get; private set; } = null!;
 	public bool IsPlayerInteracting { get; private set; }
 	public GameObject? InteractingPlayer { get; private set; }
+	private int pendingExitRefreshFrames;
 
 	public static InteractiveComputerComponent? GetActiveComputerForPlayer( GameObject? player )
 	{
@@ -60,6 +61,11 @@ public sealed class InteractiveComputerComponent : Component
 		RefreshResolutionFromSettings();
 		Runtime?.TickScreenSaver( Time.Delta, IsPlayerInteracting );
 		Runtime?.TickSystem( Time.Delta );
+		if ( pendingExitRefreshFrames > 0 )
+		{
+			pendingExitRefreshFrames--;
+			Runtime?.MarkChanged();
+		}
 
 		if ( IsPlayerInteracting &&
 			!string.IsNullOrWhiteSpace( ExitInteractionInputAction ) &&
@@ -98,6 +104,7 @@ public sealed class InteractiveComputerComponent : Component
 		Runtime.ResetScreenSaverIdle();
 		Runtime.RefreshWindowAppSessions();
 		Runtime.MarkChanged();
+		pendingExitRefreshFrames = 4;
 	}
 
 	public void ToggleInteraction( GameObject? player )

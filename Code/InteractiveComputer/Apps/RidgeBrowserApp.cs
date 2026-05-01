@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sandbox;
 using Sandbox.UI;
 using PaneOS.InteractiveComputer.Core;
@@ -41,7 +42,7 @@ public sealed class RidgeBrowserPanel : ComputerWarmupPanel
 
 	protected override void WarmupRefresh()
 	{
-		BuildUi();
+		MarkRenderDirty();
 	}
 
 	private void BuildUi()
@@ -111,6 +112,12 @@ public sealed class RidgeBrowserPanel : ComputerWarmupPanel
 			return;
 		}
 
+		if ( !IsNetworkingAvailable() )
+		{
+			RenderNetworkMissingPage();
+			return;
+		}
+
 		if ( pageState.CanRenderWebPanel )
 		{
 			var webPanel = new WebPanel
@@ -147,6 +154,23 @@ public sealed class RidgeBrowserPanel : ComputerWarmupPanel
 		statusLabel.Text = string.IsNullOrWhiteSpace( query )
 			? "Poodle search ready"
 			: $"Poodle sniffed out results for \"{query}\"";
+	}
+
+	private void RenderNetworkMissingPage()
+	{
+		statusLabel.Text = "404 Not Found";
+		var message = new Panel { Parent = contentHost };
+		message.AddClass( "ridge-message blocked ridge-404-page" );
+		new Label( "404 Not Found" ) { Parent = message }.AddClass( "ridge-message-title" );
+		new Label( "Networking.exe is not running, so Ridge cannot reach the outside kennel." ) { Parent = message }.AddClass( "ridge-message-body" );
+		new Label( "TODO: tiny pixel mouse platformer goes here." ) { Parent = message }.AddClass( "ridge-message-body" );
+	}
+
+	private bool IsNetworkingAvailable()
+	{
+		var networking = context.Runtime.OpenApps.FirstOrDefault( x => x.State.AppId.Equals( "system.networking", StringComparison.OrdinalIgnoreCase ) );
+		return networking is not null &&
+			context.Runtime.GetEffectiveStatus( networking.State.InstanceId ) == ComputerProcessStatus.Running;
 	}
 
 	private bool ShouldSuppressInput()

@@ -79,7 +79,8 @@
 								@onmousedown:stopPropagation="true"
 								ondblclick="@(() => ActivateDesktopShortcut( shortcut.Id ))"
 								oncontextmenu="@(() => OpenDesktopContextMenu( shortcut.Id ))">
-							<div class="desktop-icon">@shortcut.Icon</div>
+							<div class="desktop-icon @(string.IsNullOrWhiteSpace( shortcut.IconTexture ) ? "" : "has-texture")"
+								 style="@GetShortcutIconStyle( shortcut )">@GetShortcutIconText( shortcut )</div>
 							<label>@shortcut.Label</label>
 						</button>
 					}
@@ -723,6 +724,7 @@
 				Id = $"app:{app.Id}",
 				Label = app.Title,
 				Icon = app.Icon,
+				IconTexture = ResolveAppTexturePath( app ),
 				AppId = app.Id
 			} );
 		}
@@ -732,6 +734,7 @@
 			Id = "special:recycle",
 			Label = "Recycle Bin",
 			Icon = "RB",
+			IconTexture = ResolveThemeTexturePath( "App_recycleBin" ),
 			VirtualPath = "/C:/Recycle Bin",
 			IsDirectory = true
 		} );
@@ -743,6 +746,7 @@
 				Id = $"doc:{item.VirtualPath}",
 				Label = item.Name,
 				Icon = item.IsDirectory ? "FD" : "FI",
+				IconTexture = ResolveArchiveItemTexturePath( item ),
 				VirtualPath = item.VirtualPath,
 				IsDirectory = item.IsDirectory,
 				CanRename = true,
@@ -765,6 +769,18 @@
 	{
 		var position = GetShortcutPosition( index );
 		return $"left: {position.x}px; top: {position.y}px;";
+	}
+
+	private static string GetShortcutIconStyle( DesktopShortcutItem shortcut )
+	{
+		return string.IsNullOrWhiteSpace( shortcut.IconTexture )
+			? ""
+			: $"background-image: url(\"{shortcut.IconTexture}\");";
+	}
+
+	private static string GetShortcutIconText( DesktopShortcutItem shortcut )
+	{
+		return string.IsNullOrWhiteSpace( shortcut.IconTexture ) ? shortcut.Icon : "";
 	}
 
 	private Vector2 GetShortcutPosition( int index )
@@ -937,6 +953,59 @@
 			.Split( '/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries );
 	}
 
+	private string ResolveAppTexturePath( ComputerAppDescriptor app )
+	{
+		return ResolveThemeTexturePath( $"App_{ResolveAppTextureKey( app )}" );
+	}
+
+	private string ResolveArchiveItemTexturePath( PaneArchiveItem item )
+	{
+		if ( item.IsDirectory )
+			return ResolveThemeTexturePath( "folder" );
+
+		var extension = item.Extension.TrimStart( '.' ).ToLowerInvariant();
+		if ( string.IsNullOrWhiteSpace( extension ) )
+			return "";
+
+		return ResolveThemeTexturePath( $"Ext_{extension}" );
+	}
+
+	private string ResolveThemeTexturePath( string textureName )
+	{
+		if ( Computer is null || string.IsNullOrWhiteSpace( textureName ) )
+			return "";
+
+		var themeName = string.IsNullOrWhiteSpace( Computer.ThemeName ) ? "default" : Computer.ThemeName.Trim();
+		var path = $"textures/themes/{themeName}/{textureName}.png";
+		try
+		{
+			return FileSystem.Mounted.FileExists( path ) ? path : "";
+		}
+		catch ( Exception )
+		{
+			return "";
+		}
+	}
+
+	private static string ResolveAppTextureKey( ComputerAppDescriptor app )
+	{
+		return app.Id switch
+		{
+			"system.about" => "about",
+			"system.calculator" => "calculator",
+			"system.settings" => "controlPanel",
+			"system.notepad" => "notepad",
+			"system.paint" => "paint",
+			"system.paneexplorer" => "paneExplorer",
+			"system.ridge" => "ridge",
+			"system.taskmanager" => "taskManager",
+			"system.mediaplayer" => "mediaPlayer",
+			_ => app.ResolvedExecutableName.EndsWith( ".exe", StringComparison.OrdinalIgnoreCase )
+				? app.ResolvedExecutableName[..^4]
+				: app.ResolvedExecutableName
+		};
+	}
+
 	private static string GetScreenSaverLogoStyle( ComputerScreenSaverState saver )
 	{
 		return $"left: {saver.LogoX}px; top: {saver.LogoY}px; width: {saver.LogoWidth}px; height: {saver.LogoHeight}px;";
@@ -964,6 +1033,7 @@
 		public int Index { get; set; }
 		public string Label { get; set; } = "";
 		public string Icon { get; set; } = "";
+		public string IconTexture { get; set; } = "";
 		public string? AppId { get; set; }
 		public string? VirtualPath { get; set; }
 		public bool IsDirectory { get; set; }

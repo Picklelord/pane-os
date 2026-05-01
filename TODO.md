@@ -1,6 +1,7 @@
 # TODO
 
 * Reduce resize flicker while dragging the bottom-right window resize grip.
+* Add a small 2D pixelated side-scroller mouse jumping game to Ridge's 404 Not Found page.
 * Add these credits to the library description when publishing the package:
 
   * <a href="https://github.com/Picklelord/pane-os" title="Operating System">Pane OS, created by Daniel Garnier</a>
