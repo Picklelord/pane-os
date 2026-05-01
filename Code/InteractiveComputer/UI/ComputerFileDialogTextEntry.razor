@@ -14,6 +14,7 @@
 	{
 		base.OnAfterTreeRender( firstTime );
 		AddClass( "message-box-input" );
+		OnTextEdited = HandleTextEdited;
 
 		if ( FileDialog is null )
 			return;
@@ -36,5 +37,11 @@
 
 		if ( FileDialog.CurrentFileName != Text )
 			FileDialog.CurrentFileName = Text;
+	}
+
+	private void HandleTextEdited( string value )
+	{
+		if ( FileDialog is not null )
+			FileDialog.CurrentFileName = value;
 	}
 }

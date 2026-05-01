@@ -14,6 +14,7 @@
 	{
 		base.OnAfterTreeRender( firstTime );
 		AddClass( "message-box-input" );
+		OnTextEdited = HandleTextEdited;
 
 		if ( MessageBox is null )
 			return;
@@ -37,5 +38,11 @@
 
 		if ( MessageBox.CurrentText != Text )
 			MessageBox.CurrentText = Text;
+	}
+
+	private void HandleTextEdited( string value )
+	{
+		if ( MessageBox is not null )
+			MessageBox.CurrentText = value;
 	}
 }

@@ -234,7 +234,7 @@ public sealed class ComputerRuntime
 		if ( !runningApps.TryGetValue( instanceId, out var app ) || !app.Descriptor.HasWindow )
 			return;
 
-		if ( app.State.IsMinimized )
+		if ( app.State.IsMinimized && !app.Session.Content.IsValid )
 			RefreshRunningAppSession( app );
 
 		app.State.IsMinimized = false;
