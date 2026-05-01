@@ -220,7 +220,6 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 	private void RefreshListing()
 	{
 		HideContextMenu();
-		RequestWarmupRefresh();
 		pathLabel.Text = currentPath.Count == 0 ? "My PC" : string.Join( " / ", currentPath );
 		listHost.DeleteChildren( true );
 		rowByPath.Clear();
@@ -482,7 +481,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 			"system.paneexplorer" => "paneExplorer",
 			"system.ridge" => "ridge",
 			"system.taskmanager" => "taskManager",
-			"system.mediaplayer" => "mediaPlayer",
+			"system.mediaplayer" => "Ext_mp4",
 			_ => Path.GetFileNameWithoutExtension( app.ResolvedExecutableName )
 		};
 	}

@@ -94,6 +94,7 @@
 	background-size: contain;
 	background-position: center;
 	background-repeat: no-repeat;
+	transform: rotate(-90deg);
 }
 
 .desktop-shortcut label {
@@ -210,6 +211,21 @@
 	border: 1px solid #7f9db9;
 	font-family: Tahoma, Arial, sans-serif;
 	font-size: 13px;
+}
+
+.computer-root.dark-mode {
+	background: linear-gradient(180deg, #111821 0%, #0c1117 42%, #06090d 100%);
+	color: #d9e2f0;
+}
+
+.computer-root.dark-mode .xp-window {
+	background-color: #1a2230;
+	box-shadow: 3px 4px 9px #04070b;
+}
+
+.computer-root.dark-mode .app-host {
+	background-color: #111821;
+	border-color: #3d4b63;
 }
 
 .system-logo-badge.large {

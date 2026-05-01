@@ -880,7 +880,14 @@ public sealed class ComputerRuntime
 		if ( !string.IsNullOrWhiteSpace( session.Icon ) )
 			appState.Icon = session.Icon!;
 
-		return new ComputerRunningApp( descriptor, appState, session );
+		return new ComputerRunningApp( this, descriptor, appState, session );
+	}
+
+	public ComputerAppSession CreateMirrorSession( ComputerRunningApp app )
+	{
+		var installedApp = GetOrCreateInstalledAppState( app.Descriptor.Id );
+		var context = new ComputerAppContext( computer, this, installedApp, app.State );
+		return app.Descriptor.Create().Run( context );
 	}
 
 	private void RefreshRunningAppSession( ComputerRunningApp app )
@@ -1286,13 +1293,15 @@ public sealed class ComputerRuntime
 
 public sealed class ComputerRunningApp
 {
-	internal ComputerRunningApp( ComputerAppDescriptor descriptor, ComputerAppState state, ComputerAppSession session )
+	internal ComputerRunningApp( ComputerRuntime runtime, ComputerAppDescriptor descriptor, ComputerAppState state, ComputerAppSession session )
 	{
+		Runtime = runtime;
 		Descriptor = descriptor;
 		State = state;
 		Session = session;
 	}
 
+	public ComputerRuntime Runtime { get; }
 	public ComputerAppDescriptor Descriptor { get; }
 	public ComputerAppState State { get; }
 	public ComputerAppSession Session { get; internal set; }

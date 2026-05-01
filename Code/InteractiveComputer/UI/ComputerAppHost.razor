@@ -10,6 +10,7 @@
 {
 	[Parameter] public ComputerRunningApp? Instance { get; set; }
 	private string? mountedInstanceId;
+	private ComputerAppSession? mirrorSession;
 
 	protected override int BuildHash()
 	{
@@ -32,7 +33,7 @@
 			if ( Instance?.Session.Content is null || Instance.State is null )
 				return;
 
-			var content = Instance.Session.Content;
+			var content = ResolveMountedContent();
 			if ( !content.IsValid() )
 				return;
 
@@ -67,6 +68,9 @@
 		{
 			if ( Instance?.Session.Content is { } content && ReferenceEquals( content.Parent, this ) )
 				content.Parent = null;
+
+			if ( mirrorSession?.Content is { } mirrorContent && ReferenceEquals( mirrorContent.Parent, this ) )
+				mirrorContent.Parent = null;
 		}
 		catch ( Exception )
 		{
@@ -84,5 +88,23 @@
 		}
 
 		return false;
+	}
+
+	private Panel ResolveMountedContent()
+	{
+		if ( Instance is null )
+			return new Panel();
+
+		var content = Instance.Session.Content;
+		if ( content.IsValid() && (content.Parent is null || ReferenceEquals( content.Parent, this )) )
+		{
+			mirrorSession = null;
+			return content;
+		}
+
+		if ( mirrorSession is null || mountedInstanceId != Instance.State.InstanceId || !mirrorSession.Content.IsValid() )
+			mirrorSession = Instance.Runtime.CreateMirrorSession( Instance );
+
+		return mirrorSession.Content;
 	}
 }

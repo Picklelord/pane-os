@@ -74,11 +74,20 @@ public sealed class AboutComputerPanel : ComputerWarmupPanel
 		lastVersion = context.Runtime.Version;
 		DeleteChildren( true );
 
-		new Label( "About PC" ) { Parent = this }.AddClass( "app-heading" );
-		new Label( $"Computer ID: {context.Computer.ComputerId}" ) { Parent = this };
-		new Label( $"Resolution: {context.Runtime.State.ResolutionX} x {context.Runtime.State.ResolutionY}" ) { Parent = this };
-		new Label( $"Installed apps: {context.Runtime.State.InstalledApps.Count}" ) { Parent = this };
-		new Label( $"Running processes: {context.Runtime.OpenApps.Count}" ) { Parent = this };
+		var topSection = new Panel { Parent = this };
+		topSection.AddClass( "about-top" );
+
+		var summary = new Panel { Parent = topSection };
+		summary.AddClass( "about-summary" );
+		new Label( "About PC" ) { Parent = summary }.AddClass( "app-heading" );
+		new Label( $"Computer ID: {context.Computer.ComputerId}" ) { Parent = summary };
+		new Label( $"Resolution: {context.Runtime.State.ResolutionX} x {context.Runtime.State.ResolutionY}" ) { Parent = summary };
+
+		var hero = new Panel { Parent = topSection };
+		hero.AddClass( "about-hero" );
+		var heroIcon = new Panel { Parent = hero };
+		heroIcon.AddClass( "about-hero-icon" );
+		ApplyAboutIcon( heroIcon );
 
 		var hardware = context.Runtime.State.Hardware;
 		var hardwarePanel = new Panel { Parent = this };
@@ -91,12 +100,6 @@ public sealed class AboutComputerPanel : ComputerWarmupPanel
 		AddMetric( hardwarePanel, "GPU VRAM", $"{hardware.GpuVramGb:0.##} GB" );
 		AddMetric( hardwarePanel, "HDD", $"{hardware.HddStorageGb:0.##} GB" );
 		AddMetric( hardwarePanel, "Internet", $"{hardware.InternetSpeedGbps:0.##} Gb/s" );
-		AddMetric( hardwarePanel, "CPU lag sim", hardware.SimulateCpuInputDelayWhenMaxed ? "Enabled" : "Disabled" );
-
-		new Label( "PaneOS now uses the live hardware profile here and in Task Manager." )
-		{
-			Parent = this
-		}.AddClass( "app-note" );
 
 		var creditsPanel = new Panel { Parent = this };
 		creditsPanel.AddClass( "about-credits" );
@@ -107,6 +110,31 @@ public sealed class AboutComputerPanel : ComputerWarmupPanel
 			var button = new Button( credit.Label ) { Parent = creditsPanel };
 			button.AddClass( "about-credit-link" );
 			button.AddEventListener( "onclick", () => OpenCreditLink( credit.Url ) );
+		}
+	}
+
+	private void ApplyAboutIcon( Panel icon )
+	{
+		var texturePath = TryResolveTexturePath( "App_about" );
+		if ( string.IsNullOrWhiteSpace( texturePath ) )
+			return;
+
+		icon.Style.SetBackgroundImage( texturePath );
+	}
+
+	private string TryResolveTexturePath( string textureName )
+	{
+		var themeName = string.IsNullOrWhiteSpace( context.Computer.ThemeName )
+			? "default"
+			: context.Computer.ThemeName.Trim();
+		var path = $"textures/themes/{themeName}/{textureName}.png";
+		try
+		{
+			return Sandbox.FileSystem.Mounted.FileExists( path ) ? path : "";
+		}
+		catch
+		{
+			return "";
 		}
 	}
 

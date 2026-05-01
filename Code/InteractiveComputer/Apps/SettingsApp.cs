@@ -112,6 +112,8 @@ public sealed class SettingsPanel : ComputerWarmupPanel
 			("Check Updates", () => context.Runtime.RunSystemUpdateScan()),
 			("Install Codec", () => context.Runtime.RunPackageInstall( "Media Codec Pack" )),
 			("Install Tools", () => context.Runtime.RunPackageInstall( "Gamer Tools" )) );
+		CreateSettingRow( section, $"Dark mode: {(context.Runtime.State.DarkModeEnabled ? "On" : "Off")}",
+			(context.Runtime.State.DarkModeEnabled ? "Disable" : "Enable", ToggleDarkMode) );
 	}
 
 	private Panel CreateSection( string title )
@@ -153,6 +155,12 @@ public sealed class SettingsPanel : ComputerWarmupPanel
 	private void SetRidgeHome( string url )
 	{
 		context.Runtime.SaveAppSetting( "system.ridge", "home_url", url );
+	}
+
+	private void ToggleDarkMode()
+	{
+		context.Runtime.State.DarkModeEnabled = !context.Runtime.State.DarkModeEnabled;
+		context.Runtime.MarkChanged();
 	}
 
 	private void PromptForCustomHome()

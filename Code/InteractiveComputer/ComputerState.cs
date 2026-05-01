@@ -15,6 +15,7 @@ public sealed class ComputerState
 	public string? FocusedInstanceId { get; set; }
 	public string ArchiveUserName { get; set; } = "";
 	public string DesktopWallpaper { get; set; } = "default";
+	public bool DarkModeEnabled { get; set; }
 	public ComputerHardwareState Hardware { get; set; } = new();
 	public ComputerScreenSaverState ScreenSaver { get; set; } = new();
 	public List<ComputerInstalledAppState> InstalledApps { get; set; } = new();

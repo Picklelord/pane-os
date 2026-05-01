@@ -150,7 +150,6 @@ public sealed class TaskManagerPanel : ComputerWarmupPanel
 			row.SetClass( "not-responding", context.Runtime.GetEffectiveStatus( app.State.InstanceId ) == ComputerProcessStatus.NotResponding );
 
 			AddCell( row, app.State.Title );
-			AddCell( row, app.Descriptor.ResolvedExecutableName );
 			AddCell( row, FormatStatus( context.Runtime.GetEffectiveStatus( app.State.InstanceId ) ) );
 			AddCell( row, $"{metrics.CpuPercent:0.0}%" );
 			AddCell( row, $"{metrics.RamPercent:0.0}%" );
@@ -182,10 +181,12 @@ public sealed class TaskManagerPanel : ComputerWarmupPanel
 		AddPerformanceCard( grid, "RAM Usage", $"{metrics.RamPercent:0.0}%" );
 		AddPerformanceCard( grid, "GPU Core Usage", $"{metrics.GpuCorePercent:0.0}%" );
 		AddPerformanceCard( grid, "GPU VRAM Usage", $"{metrics.GpuVramPercent:0.0}%" );
-		AddSparkline( contentHost, "CPU History", context.Runtime.MetricHistory.CpuSamples );
-		AddSparkline( contentHost, "RAM History", context.Runtime.MetricHistory.RamSamples );
-		AddSparkline( contentHost, "GPU History", context.Runtime.MetricHistory.GpuSamples );
-		AddSparkline( contentHost, "GPU VRAM History", context.Runtime.MetricHistory.GpuVramSamples );
+		var historyGrid = new Panel { Parent = contentHost };
+		historyGrid.AddClass( "perf-grid" );
+		AddSparkline( historyGrid, "CPU History", context.Runtime.MetricHistory.CpuSamples );
+		AddSparkline( historyGrid, "RAM History", context.Runtime.MetricHistory.RamSamples );
+		AddSparkline( historyGrid, "GPU History", context.Runtime.MetricHistory.GpuSamples );
+		AddSparkline( historyGrid, "GPU VRAM History", context.Runtime.MetricHistory.GpuVramSamples );
 
 		var note = new Label( $"Live hardware: {context.Runtime.State.Hardware.CpuCoreCount} cores @ {context.Runtime.State.Hardware.CpuCoreGhz:0.##} GHz, {context.Runtime.State.Hardware.RamGb:0.##} GB RAM" )
 		{
@@ -233,7 +234,6 @@ public sealed class TaskManagerPanel : ComputerWarmupPanel
 		AddCell( unusedRow, "Unused" );
 		AddCell( unusedRow, metrics.UnusedStorageGb.ToString( "0.###" ) );
 
-		new Label( context.Runtime.GetArchivePath() ) { Parent = contentHost }.AddClass( "task-storage-note" );
 	}
 
 	private void AddProcessHeader( Panel table )
@@ -241,7 +241,6 @@ public sealed class TaskManagerPanel : ComputerWarmupPanel
 		var header = new Panel { Parent = table };
 		header.AddClass( "task-table-header" );
 		AddSortableHeaderCell( header, "Process", TaskManagerProcessSortField.Process );
-		AddHeaderCell( header, "Executable" );
 		AddSortableHeaderCell( header, "Status", TaskManagerProcessSortField.Status );
 		AddSortableHeaderCell( header, "CPU % Used", TaskManagerProcessSortField.Cpu );
 		AddSortableHeaderCell( header, "RAM % Used", TaskManagerProcessSortField.Ram );

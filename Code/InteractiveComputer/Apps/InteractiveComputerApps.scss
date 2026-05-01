@@ -21,6 +21,66 @@
 	font-size: 13px;
 }
 
+.computer-root.dark-mode .app-document,
+.computer-root.dark-mode .notepad-app,
+.computer-root.dark-mode .calculator-app,
+.computer-root.dark-mode .paint-app,
+.computer-root.dark-mode .media-player-app,
+.computer-root.dark-mode .ridge-app,
+.computer-root.dark-mode .task-manager-app,
+.computer-root.dark-mode .explorer-app {
+	background: #10161f;
+	color: #d9e2f0;
+}
+
+.computer-root.dark-mode .about-grid,
+.computer-root.dark-mode .about-credits,
+.computer-root.dark-mode .settings-section,
+.computer-root.dark-mode .task-table,
+.computer-root.dark-mode .storage-drive-card,
+.computer-root.dark-mode .perf-card,
+.computer-root.dark-mode .task-history-card,
+.computer-root.dark-mode .explorer-context-menu {
+	background: #172130;
+	border-color: #314159;
+}
+
+.computer-root.dark-mode .notepad-toolbar,
+.computer-root.dark-mode .paint-toolbar,
+.computer-root.dark-mode .ridge-toolbar,
+.computer-root.dark-mode .task-tabs,
+.computer-root.dark-mode .explorer-toolbar,
+.computer-root.dark-mode .about-credits-title {
+	background: #1d2a3d;
+	border-color: #314159;
+	color: #d9e2f0;
+}
+
+.computer-root.dark-mode .settings-button,
+.computer-root.dark-mode .explorer-button,
+.computer-root.dark-mode .explorer-context-button,
+.computer-root.dark-mode .task-sort-header,
+.computer-root.dark-mode .task-kill-button,
+.computer-root.dark-mode .ridge-button,
+.computer-root.dark-mode .media-player-button {
+	background: #24344b;
+	border-color: #50637f;
+	color: #ecf3ff;
+}
+
+.computer-root.dark-mode .task-table-header,
+.computer-root.dark-mode .explorer-header {
+	background: #223046;
+	color: #cfdcf0;
+}
+
+.computer-root.dark-mode .task-table-row,
+.computer-root.dark-mode .about-row,
+.computer-root.dark-mode .settings-row,
+.computer-root.dark-mode .explorer-row {
+	border-color: #2a3648;
+}
+
 .app-document label,
 .notepad-app label,
 .calculator-app label,
@@ -58,6 +118,35 @@
 	background: linear-gradient(180deg, #f8fbff, #edf3ff);
 }
 
+.about-top {
+	align-items: stretch;
+	justify-content: space-between;
+	gap: 16px;
+	min-height: 104px;
+}
+
+.about-summary {
+	flex-grow: 1;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.about-hero {
+	width: 96px;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.about-hero-icon {
+	width: 80px;
+	height: 80px;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: contain;
+	transform: rotate(-90deg);
+}
+
 .about-row {
 	height: 28px;
 	align-items: center;
@@ -86,22 +175,25 @@
 }
 
 .about-credits-title {
-	height: 28px;
+	height: 56px;
 	align-items: center;
 	padding: 0 10px;
 	font-weight: 700;
+	font-size: 16px;
 	color: #244a87;
 	background-color: #dce8fb;
 }
 
 .about-credit-link {
-	height: 24px;
+	min-height: 48px;
 	padding: 0 10px;
 	justify-content: flex-start;
 	border-top: 1px solid #dce6f6;
 	background-color: #ffffff;
 	color: #245aa1;
 	text-align: left;
+	font-size: 15px;
+	font-weight: 700;
 }
 
 .settings-section-title {
@@ -720,6 +812,8 @@
 	justify-content: flex-start;
 	min-width: 0;
 	text-align: left;
+	font-size: 12px;
+	line-height: 16px;
 }
 
 .task-header-cell {
@@ -773,6 +867,7 @@
 .perf-title {
 	color: #40608f;
 	font-size: 13px;
+	line-height: 18px;
 }
 
 .perf-value {
@@ -780,9 +875,11 @@
 	font-size: 28px;
 	font-weight: 700;
 	color: #183d82;
+	line-height: 30px;
 }
 
 .task-history-card {
+	width: 48%;
 	flex-direction: column;
 	padding: 10px 12px;
 	gap: 8px;
@@ -794,6 +891,7 @@
 	color: #40608f;
 	font-size: 12px;
 	font-weight: 700;
+	line-height: 18px;
 }
 
 .task-history-bars {
@@ -832,6 +930,7 @@
 .storage-drive-subtitle {
 	color: #5b7094;
 	font-weight: 700;
+	font-size: 13px;
 }
 
 .storage-drive-stats {
@@ -843,6 +942,7 @@
 .task-storage-note {
 	color: #5e6f8d;
 	font-size: 12px;
+	line-height: 16px;
 }
 
 .explorer-app {
@@ -960,6 +1060,7 @@
 	background-size: contain;
 	background-position: center;
 	background-repeat: no-repeat;
+	transform: rotate(-90deg);
 }
 
 .explorer-parent-spacer {

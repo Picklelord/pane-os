@@ -13,7 +13,7 @@
 	return;
 }
 
-<root class="computer-root @(Runtime.State.IsSleeping ? "is-sleeping" : "") @(!ShouldShowDesktop ? "is-hidden" : "")"
+<root class="computer-root @(Runtime.State.DarkModeEnabled ? "dark-mode" : "") @(Runtime.State.IsSleeping ? "is-sleeping" : "") @(!ShouldShowDesktop ? "is-hidden" : "")"
 	  style="width: 100%; height: 100%; @GetDesktopBackgroundStyle()">
 	@if ( ShouldRenderWallpaperImageLayer() )
 	{
@@ -999,7 +999,7 @@
 			"system.paneexplorer" => "paneExplorer",
 			"system.ridge" => "ridge",
 			"system.taskmanager" => "taskManager",
-			"system.mediaplayer" => "mediaPlayer",
+			"system.mediaplayer" => "Ext_mp4",
 			_ => app.ResolvedExecutableName.EndsWith( ".exe", StringComparison.OrdinalIgnoreCase )
 				? app.ResolvedExecutableName[..^4]
 				: app.ResolvedExecutableName
