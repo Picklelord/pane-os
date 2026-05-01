@@ -6,18 +6,24 @@ Try it out in the [Test Project here.](https://github.com/Picklelord/pane-os-tes
 
 Here are some **WIP** screen shots:
 
-![When you first load the project, you can choose to have the PC in sleep mode or awake, here it is awake.](./Docs/DefaultStartState.png)
+When you first load the project, you can choose to have the PC in sleep mode or awake, here it is awake.
+![](./Docs/DefaultStartState.png)
 
-![After beginning the interaction with the computer by clicking "e" while looking at the monitor, it fullscreens the PC, you can exit via the "e" key as well if not in a text editor at the time.](./Docs/AfterInteracting.png)
+After beginning the interaction with the computer by clicking "e" while looking at the monitor, it fullscreens the PC, you can exit via the "e" key as well if not in a text editor at the time.
+![](./Docs/AfterInteracting.png)
   
-![Here are the current state of the apps on opening, the 2 not seen are the "About PC" and "Control Panel" which have more work to be done.](./Docs/AppsOpenBeforeNotResponding.png)
+Here are the current state of the apps on opening, the 2 not seen are the "About PC" and "Control Panel" which have more work to be done.
+![](./Docs/AppsOpenBeforeNotResponding.png)
  
-![Here is the current state of the Start menu and the apps, there is a simulation feature for creating memory leaks and causing apps to not respond.
-Apps not responding is something you can set a chance to happen each minute, and disable entirely if not wanted.](./Docs/AppsOpenNotRespondingAndStartMenu.png)
+Here is the current state of the Start menu and the apps, there is a simulation feature for creating memory leaks and causing apps to not respond.
+Apps not responding is something you can set a chance to happen each minute, and disable entirely if not wanted.
+![](./Docs/AppsOpenNotRespondingAndStartMenu.png)
 
-![The apps show on the screen when not interacting with the computer](./Docs/AppsOpenOutsideOfComputer.png)
+The apps show on the screen when not interacting with the computer
+![](./Docs/AppsOpenOutsideOfComputer.png)
 
-![The screensaver is the classic DVD diagonal logo shifter!](./Docs/ClassicDvDPaneOSScreenSaver.png)
+The screensaver is the classic DVD diagonal logo shifter!
+![](./Docs/ClassicDvDPaneOSScreenSaver.png)
 
 
 This repository is structured as a library package:
