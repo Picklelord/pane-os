@@ -47,6 +47,11 @@ After copying, reload or recompile the project in the s&box editor. The PaneOS c
   - `system.notepad`
   - `system.ridge`
   - `system.taskmanager`
+  - `system.paneexplorer`
+  - `system.settings`
+  - `system.calculator`
+  - `system.paint`
+  - `system.mediaplayer`
 
 ## Basic Editor Setup
 
@@ -102,7 +107,7 @@ Or use the included helper:
 4. Set `UseDistance` to the desired interaction range.
 5. Optionally add `ComputerInteractionPlayerLock` to the same player and assign your movement and look components.
 
-While interacting, the computer wakes from sleep, the screensaver is dismissed, idle time resets, and pressing `escape` ends interaction.
+While interacting, the computer wakes from sleep, the screensaver is dismissed, idle time resets, and pressing the configured `ExitInteractionInputAction` ends interaction. The default is `use`, which matches the usual button/use flow.
 
 If your monitor model already uses a built-in s&box `Button Component`, a straightforward setup is to call `InteractiveComputerComponent.ToggleInteraction( playerGameObject )` from that button's use/click event. PaneOS no longer shows a fake `E` prompt inside its lock or sleep overlays, so you can reserve the `use` key entirely for your own interaction flow.
 
@@ -151,9 +156,20 @@ Important `InteractiveComputerComponent` properties:
 - `ScreenSaverDelaySeconds`: idle time before the screensaver appears.
 - `ScreenSaverLogoSize`: size of the bouncing PaneOS logo.
 - `ScreenSaverVelocity`: screensaver movement speed.
+- `ThemeName`: texture theme folder name. The default is `default`, which resolves icons from `Assets/textures/themes/default`.
 - `InstalledAppIds`: comma, space, tab, or newline separated app IDs.
 - `InstallAllAppsWhenListIsEmpty`: installs every registered app if `InstalledAppIds` is blank.
 - `SavedStateJson`: serialized state mirror for save systems and editor inspection.
+
+Theme icon convention:
+
+```text
+Assets/textures/themes/{ThemeName}/App_{appName}.png
+Assets/textures/themes/{ThemeName}/Ext_{extension}.png
+Assets/textures/themes/{ThemeName}/folder.png
+```
+
+Example default theme icon names include `App_notepad.png`, `App_paneExplorer.png`, `Ext_txt.png`, and `folder.png`.
 
 Example `InstalledAppIds`:
 
@@ -227,6 +243,12 @@ To enable website rendering for a specific computer, add settings to the install
 
 Only `http` and `https` URLs whose host matches `allowed_hosts` are passed to `WebPanel`.
 
+PaneOS credit links are allow-listed by default so the About PC credits can open in Ridge without requiring every placed computer to duplicate those hosts. The default credit hosts are:
+
+- `github.com`
+- `flaticon.com`
+- `www.flaticon.com`
+
 ## Testing
 
 Run the framework-free unit test runner:
@@ -277,3 +299,24 @@ PaneOSRtScreenBridge shows an `OnValidate` warning:
 - PaneOS now falls back to the component resolution during validation, then finishes normal setup at runtime.
 
 PaneOS uses s&box Panel/Razor UI. It does not use Qt.
+
+## Credits
+
+- [Pane OS, created by Daniel Garnier](https://github.com/Picklelord/pane-os)
+- [Video icons created by riajulislam - Flaticon](https://www.flaticon.com/free-icons/video)
+- [Radio icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/radio)
+- [Mp3 icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/mp3)
+- [Exe icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/exe)
+- [Document icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/document)
+- [Painting icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/painting)
+- [Seo and web icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/seo-and-web)
+- [Search icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/search)
+- [Notepad icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/notepad)
+- [Calculator icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/calculator)
+- [Checklist icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/checklist)
+- [Recycle bin icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/recycle-bin)
+- [Control panel icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/control-panel)
+- [Computer icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/computer)
+- [Folder icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/folder)
+- [Picture icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/picture)
+- [Film icons created by Freepik - Flaticon](https://www.flaticon.com/free-icons/film)

@@ -61,10 +61,7 @@ public static class PaneArchiveFileSystem
 
 		foreach ( var entry in entries )
 		{
-			if ( entry.Segments.Count < prefix.Length || !entry.Segments.Take( prefix.Length ).SequenceEqual( prefix ) )
-				continue;
-
-			if ( entry.Segments.Count == prefix.Length )
+			if ( entry.Segments.Count <= prefix.Length || !IsUnderPath( entry.Segments, prefix ) )
 				continue;
 
 			var childName = entry.Segments[prefix.Length];
@@ -84,7 +81,7 @@ public static class PaneArchiveFileSystem
 				children[childKey] = child;
 			}
 
-			if ( !child.IsDirectory && entry.Segments.SequenceEqual( childSegments ) )
+			if ( !child.IsDirectory && PathEquals( entry.Segments, childSegments ) )
 				child.SizeBytes = entry.Content.LongLength;
 		}
 
@@ -123,7 +120,7 @@ public static class PaneArchiveFileSystem
 	public static string ReadTextFile( string archivePath, IReadOnlyList<string> filePath )
 	{
 		var entries = ReadEntries( archivePath );
-		var file = entries.FirstOrDefault( x => !x.IsDirectory && x.Segments.SequenceEqual( filePath ) );
+		var file = entries.FirstOrDefault( x => !x.IsDirectory && PathEquals( x.Segments, filePath ) );
 		return file is null ? "" : Encoding.UTF8.GetString( file.Content );
 	}
 
@@ -146,7 +143,7 @@ public static class PaneArchiveFileSystem
 		var sourcePrefix = targetPath.ToArray();
 		var destinationPrefix = targetPath.Take( targetPath.Count - 1 ).Append( newName.Trim() ).ToArray();
 
-		foreach ( var entry in entries.Where( x => x.Segments.Count >= sourcePrefix.Length && x.Segments.Take( sourcePrefix.Length ).SequenceEqual( sourcePrefix ) ) )
+		foreach ( var entry in entries.Where( x => IsUnderPath( x.Segments, sourcePrefix ) ) )
 		{
 			entry.Segments = destinationPrefix.Concat( entry.Segments.Skip( sourcePrefix.Length ) ).ToList();
 		}
@@ -167,7 +164,7 @@ public static class PaneArchiveFileSystem
 	public static bool Exists( string archivePath, IReadOnlyList<string> targetPath )
 	{
 		var entries = ReadEntries( archivePath );
-		return entries.Any( x => x.Segments.SequenceEqual( targetPath ) );
+		return entries.Any( x => PathEquals( x.Segments, targetPath ) );
 	}
 
 	public static void Delete( string archivePath, IReadOnlyList<string> targetPath )
@@ -176,7 +173,7 @@ public static class PaneArchiveFileSystem
 			return;
 
 		var entries = ReadEntries( archivePath );
-		entries.RemoveAll( x => x.Segments.Count >= targetPath.Count && x.Segments.Take( targetPath.Count ).SequenceEqual( targetPath ) );
+		entries.RemoveAll( x => IsUnderPath( x.Segments, targetPath ) );
 		DeleteRecycleBinMetadata( entries, targetPath );
 		WriteEntries( archivePath, entries );
 	}
@@ -222,12 +219,12 @@ public static class PaneArchiveFileSystem
 		EnsureDirectory( entries, parentPath.ToArray() );
 		var desiredDestination = parentPath.Concat( new[] { recycleName } ).ToArray();
 		if ( IsEmptyDirectory( entries, desiredDestination ) )
-			entries.RemoveAll( x => x.IsDirectory && x.Segments.SequenceEqual( desiredDestination ) );
+			entries.RemoveAll( x => x.IsDirectory && PathEquals( x.Segments, desiredDestination ) );
 
 		var restoredName = ResolveUniqueChildName( entries, parentPath, recycleName );
 		var destinationPath = parentPath.Concat( new[] { restoredName } ).ToArray();
 		MoveEntries( entries, recyclePath.ToArray(), destinationPath );
-		entries.RemoveAll( x => !x.IsDirectory && x.Segments.SequenceEqual( metadataPath ) );
+		entries.RemoveAll( x => !x.IsDirectory && PathEquals( x.Segments, metadataPath ) );
 		WriteEntries( archivePath, entries );
 		return "/" + string.Join( "/", destinationPath );
 	}
@@ -271,7 +268,7 @@ public static class PaneArchiveFileSystem
 	public static bool IsDirectory( string archivePath, IReadOnlyList<string> targetPath )
 	{
 		var entries = ReadEntries( archivePath );
-		return entries.Any( x => x.IsDirectory && x.Segments.SequenceEqual( targetPath ) );
+		return entries.Any( x => x.IsDirectory && PathEquals( x.Segments, targetPath ) );
 	}
 
 	public static string NormalizeDisplayName( string? value )
@@ -338,7 +335,7 @@ public static class PaneArchiveFileSystem
 
 	private static void EnsureDirectory( List<ArchiveEntryModel> entries, params string[] segments )
 	{
-		if ( entries.Any( x => x.IsDirectory && x.Segments.SequenceEqual( segments ) ) )
+		if ( entries.Any( x => x.IsDirectory && PathEquals( x.Segments, segments ) ) )
 			return;
 
 		entries.Add( new ArchiveEntryModel
@@ -355,12 +352,12 @@ public static class PaneArchiveFileSystem
 
 		var sourcePrefix = new[] { "C:", "Users", "Player" };
 		var destinationPrefix = new[] { "C:", "Users", normalizedUserName };
-		var hasSource = entries.Any( x => x.Segments.Count >= sourcePrefix.Length && x.Segments.Take( sourcePrefix.Length ).SequenceEqual( sourcePrefix ) );
-		var hasDestination = entries.Any( x => x.Segments.Count >= destinationPrefix.Length && x.Segments.Take( destinationPrefix.Length ).SequenceEqual( destinationPrefix ) );
+		var hasSource = entries.Any( x => IsUnderPath( x.Segments, sourcePrefix ) );
+		var hasDestination = entries.Any( x => IsUnderPath( x.Segments, destinationPrefix ) );
 		if ( !hasSource || hasDestination )
 			return;
 
-		foreach ( var entry in entries.Where( x => x.Segments.Count >= sourcePrefix.Length && x.Segments.Take( sourcePrefix.Length ).SequenceEqual( sourcePrefix ) ) )
+		foreach ( var entry in entries.Where( x => IsUnderPath( x.Segments, sourcePrefix ) ) )
 		{
 			entry.Segments = destinationPrefix
 				.Concat( entry.Segments.Skip( sourcePrefix.Length ) )
@@ -370,7 +367,7 @@ public static class PaneArchiveFileSystem
 
 	private static void EnsureFile( List<ArchiveEntryModel> entries, byte[] content, params string[] segments )
 	{
-		var existing = entries.FirstOrDefault( x => !x.IsDirectory && x.Segments.SequenceEqual( segments ) );
+		var existing = entries.FirstOrDefault( x => !x.IsDirectory && PathEquals( x.Segments, segments ) );
 		if ( existing is not null )
 		{
 			existing.Content = content;
@@ -386,7 +383,7 @@ public static class PaneArchiveFileSystem
 
 	private static void MoveEntries( List<ArchiveEntryModel> entries, string[] sourcePrefix, string[] destinationPrefix )
 	{
-		foreach ( var entry in entries.Where( x => x.Segments.Count >= sourcePrefix.Length && x.Segments.Take( sourcePrefix.Length ).SequenceEqual( sourcePrefix ) ) )
+		foreach ( var entry in entries.Where( x => IsUnderPath( x.Segments, sourcePrefix ) ) )
 		{
 			entry.Segments = destinationPrefix.Concat( entry.Segments.Skip( sourcePrefix.Length ) ).ToList();
 		}
@@ -399,7 +396,7 @@ public static class PaneArchiveFileSystem
 		var extension = Path.GetExtension( desiredName );
 		var suffix = 2;
 		while ( entries.Any( x => x.Segments.Count >= parentPath.Count + 1 &&
-			x.Segments.Take( parentPath.Count ).SequenceEqual( parentPath ) &&
+			IsUnderPath( x.Segments, parentPath ) &&
 			x.Segments[parentPath.Count].Equals( name, StringComparison.OrdinalIgnoreCase ) ) )
 		{
 			name = string.IsNullOrWhiteSpace( extension )
@@ -412,18 +409,24 @@ public static class PaneArchiveFileSystem
 
 	private static bool IsEmptyDirectory( List<ArchiveEntryModel> entries, IReadOnlyList<string> path )
 	{
-		return entries.Any( x => x.IsDirectory && x.Segments.SequenceEqual( path ) ) &&
-			!entries.Any( x => x.Segments.Count > path.Count && x.Segments.Take( path.Count ).SequenceEqual( path ) );
+		return entries.Any( x => x.IsDirectory && PathEquals( x.Segments, path ) ) &&
+			!entries.Any( x => x.Segments.Count > path.Count && IsUnderPath( x.Segments, path ) );
 	}
 
 	private static bool IsUnderPath( IReadOnlyList<string> path, IReadOnlyList<string> parentPath )
 	{
-		return path.Count >= parentPath.Count && path.Take( parentPath.Count ).SequenceEqual( parentPath );
+		return path.Count >= parentPath.Count && path.Take( parentPath.Count )
+			.SequenceEqual( parentPath, StringComparer.OrdinalIgnoreCase );
+	}
+
+	private static bool PathEquals( IReadOnlyList<string> left, IReadOnlyList<string> right )
+	{
+		return left.Count == right.Count && left.SequenceEqual( right, StringComparer.OrdinalIgnoreCase );
 	}
 
 	private static string ReadTextFileFromEntries( List<ArchiveEntryModel> entries, IReadOnlyList<string> filePath )
 	{
-		var file = entries.FirstOrDefault( x => !x.IsDirectory && x.Segments.SequenceEqual( filePath ) );
+		var file = entries.FirstOrDefault( x => !x.IsDirectory && PathEquals( x.Segments, filePath ) );
 		return file is null ? "" : Encoding.UTF8.GetString( file.Content );
 	}
 
@@ -441,7 +444,7 @@ public static class PaneArchiveFileSystem
 			return;
 
 		var recycleName = targetPath[2];
-		entries.RemoveAll( x => !x.IsDirectory && x.Segments.SequenceEqual( new[] { "C:", "Recycle Bin", "$paneos-meta", $"{recycleName}.restore.txt" } ) );
+		entries.RemoveAll( x => !x.IsDirectory && PathEquals( x.Segments, new[] { "C:", "Recycle Bin", "$paneos-meta", $"{recycleName}.restore.txt" } ) );
 	}
 
 	private static string EncodePath( IReadOnlyList<string> segments, bool isDirectory )

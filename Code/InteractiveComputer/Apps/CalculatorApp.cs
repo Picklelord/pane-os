@@ -47,22 +47,57 @@ public sealed class CalculatorPanel : ComputerWarmupPanel
 		var grid = new Panel { Parent = this };
 		grid.AddClass( "calculator-grid" );
 
-		foreach ( var key in new[] { "7", "8", "9", "/", "4", "5", "6", "*", "1", "2", "3", "-", "0", ".", "=", "+" } )
+		var rows = new[]
 		{
-			var button = new Button( key ) { Parent = grid };
-			button.AddClass( "calculator-button" );
-			button.AddEventListener( "onclick", () => OnKey( key ) );
-		}
+			new[] { "C", "+/-", "%", "/" },
+			new[] { "7", "8", "9", "*" },
+			new[] { "4", "5", "6", "-" },
+			new[] { "1", "2", "3", "+" },
+			new[] { "0", ".", "=", "<-" }
+		};
 
-		var footer = new Panel { Parent = this };
-		footer.AddClass( "calculator-footer" );
-		var clearButton = new Button( "C" ) { Parent = footer };
-		clearButton.AddClass( "calculator-clear" );
-		clearButton.AddEventListener( "onclick", Clear );
+		foreach ( var rowKeys in rows )
+		{
+			var row = new Panel { Parent = grid };
+			row.AddClass( "calculator-row" );
+			foreach ( var key in rowKeys )
+			{
+				var button = new Button( key ) { Parent = row };
+				button.AddClass( "calculator-button" );
+				button.AddEventListener( "onclick", () => OnKey( key ) );
+			}
+		}
 	}
 
 	private void OnKey( string key )
 	{
+		if ( key == "C" )
+		{
+			Clear();
+			return;
+		}
+
+		if ( key == "<-" )
+		{
+			display.Text = display.Text.Length <= 1 ? "0" : display.Text[..^1];
+			return;
+		}
+
+		if ( key == "+/-" )
+		{
+			display.Text = display.Text.StartsWith( "-", StringComparison.Ordinal )
+				? display.Text[1..]
+				: $"-{display.Text}";
+			return;
+		}
+
+		if ( key == "%" )
+		{
+			if ( float.TryParse( display.Text, out var percentValue ) )
+				display.Text = (percentValue / 100f).ToString( "0.###" );
+			return;
+		}
+
 		if ( key is "+" or "-" or "*" or "/" )
 		{
 			CommitPendingOperation();

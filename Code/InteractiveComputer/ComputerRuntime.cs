@@ -809,6 +809,14 @@ public sealed class ComputerRuntime
 			var existing = OpenApps.FirstOrDefault( x => x.State.AppId == appId );
 			if ( existing is not null )
 			{
+				if ( initialData is not null )
+				{
+					foreach ( var item in initialData )
+						existing.State.Data[item.Key] = item.Value;
+
+					RefreshRunningAppSession( existing );
+				}
+
 				if ( focusWindow && descriptor.HasWindow )
 					Focus( existing.State.InstanceId );
 

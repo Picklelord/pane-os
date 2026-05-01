@@ -1,7 +1,7 @@
 # TODO
 
 * Reduce resize flicker while dragging the bottom-right window resize grip.
-* Add credits for all icons And the Operating System used to the bottom of the "About" app(make space in the interface for these), also add to the bottom of the readme and keep this TODO for when I need to add it to the library description: 
+* Add these credits to the library description when publishing the package:
 
   * <a href="https://github.com/Picklelord/pane-os" title="Operating System">Pane OS, created by Daniel Garnier</a>
   * <a href="https://www.flaticon.com/free-icons/video" title="video icons">Video icons created by riajulislam - Flaticon</a>
@@ -21,7 +21,6 @@
   * <a href="https://www.flaticon.com/free-icons/folder" title="folder icons">Folder icons created by Freepik - Flaticon</a>
   * <a href="https://www.flaticon.com/free-icons/picture" title="picture icons">Picture icons created by Freepik - Flaticon</a>
   * <a href="https://www.flaticon.com/free-icons/film" title="film icons">Film icons created by Freepik - Flaticon</a>
-* Add a whitelist for all the links in the above TODO item so that a player can click the links, create any missing functionality to open the links in the Ridge app. 
 
 
 

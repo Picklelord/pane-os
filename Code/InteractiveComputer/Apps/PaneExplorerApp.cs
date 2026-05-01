@@ -91,21 +91,13 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		AddCell( header, "Type", true );
 		AddCell( header, "Size", true );
 
-		listHost = new ExplorerListPanel( ShowFolderContextMenu, HideContextMenu ) { Parent = table };
+		listHost = new ExplorerListPanel( ShowFolderContextMenu, ClearSelectionAndHideContextMenu ) { Parent = table };
 		listHost.AddClass( "explorer-list" );
 
 		contextMenuHost = new Panel { Parent = this };
 		contextMenuHost.AddClass( "explorer-context-menu-host" );
 
 		RefreshListing();
-	}
-
-	protected override void OnMouseDown( MousePanelEvent e )
-	{
-		base.OnMouseDown( e );
-
-		if ( e.Button == "mouseleft" )
-			HideContextMenu();
 	}
 
 	private void CreateToolbarButton( Panel parent, string label, Action onClick, string extraClass = "" )
@@ -119,7 +111,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 
 	private void PromptForCreate()
 	{
-		HideContextMenu();
+		contextMenuHost.DeleteChildren( true );
 		context.ShowMessageBox(
 			new ComputerMessageBoxOptions
 			{
@@ -164,7 +156,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		if ( string.IsNullOrWhiteSpace( targetPath ) )
 			return;
 
-		HideContextMenu();
+		contextMenuHost.DeleteChildren( true );
 		var currentName = ParsePath( targetPath ).LastOrDefault() ?? "";
 		context.ShowMessageBox(
 			new ComputerMessageBoxOptions
@@ -228,6 +220,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 	private void RefreshListing()
 	{
 		HideContextMenu();
+		RequestWarmupRefresh();
 		pathLabel.Text = currentPath.Count == 0 ? "My PC" : string.Join( " / ", currentPath );
 		listHost.DeleteChildren( true );
 		rowByPath.Clear();
@@ -335,6 +328,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		SelectPath( targetPath );
 		contextMenuPath = targetPath;
 		contextMenuHost.DeleteChildren( true );
+		PositionContextMenuNearCursor();
 
 		var menu = new Panel { Parent = contextMenuHost };
 		menu.AddClass( "explorer-context-menu" );
@@ -359,6 +353,8 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		selectedPath = null;
 		contextMenuPath = null;
 		contextMenuHost.DeleteChildren( true );
+		SyncSelectionStyles();
+		PositionContextMenuNearCursor();
 
 		var menu = new Panel { Parent = contextMenuHost };
 		menu.AddClass( "explorer-context-menu" );
@@ -402,12 +398,13 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 
 	private static bool IsRecycleBinPath( string virtualPath )
 	{
-		return virtualPath.StartsWith( "/C:/Recycle Bin/", StringComparison.OrdinalIgnoreCase );
+		return IsRecycleBinPath( ParsePath( virtualPath ) );
 	}
 
 	private static bool IsRecycleBinPath( IReadOnlyList<string> path )
 	{
-		return path.Count >= RecycleBinPath.Count && path.Take( RecycleBinPath.Count ).SequenceEqual( RecycleBinPath );
+		return path.Count >= RecycleBinPath.Count && path.Take( RecycleBinPath.Count )
+			.SequenceEqual( RecycleBinPath, StringComparer.OrdinalIgnoreCase );
 	}
 
 	private void CreateItemIcon( Panel parent, PaneArchiveItem item )
@@ -427,30 +424,42 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 	private string ResolveTexturePath( PaneArchiveItem item )
 	{
 		if ( item.IsDirectory )
+		{
+			if ( IsRecycleBinPath( item.VirtualPath ) && ParsePath( item.VirtualPath ).Count == RecycleBinPath.Count )
+			{
+				var recycleTexture = TryResolveTexturePath( "App_recycleBin" );
+				if ( !string.IsNullOrWhiteSpace( recycleTexture ) )
+					return recycleTexture;
+			}
+
 			return TryResolveTexturePath( "folder" );
+		}
 
 		if ( item.Extension.Equals( ".exe", StringComparison.OrdinalIgnoreCase ) )
 		{
 			var app = context.Runtime.Apps.FirstOrDefault( x => x.ResolvedExecutableName.Equals( item.Name, StringComparison.OrdinalIgnoreCase ) );
 			if ( app is not null )
 			{
-				var appTextureName = Path.GetFileNameWithoutExtension( app.ResolvedExecutableName ).ToLowerInvariant();
+				var appTextureName = $"App_{ResolveAppTextureKey( app )}";
 				var appTexture = TryResolveTexturePath( appTextureName );
 				if ( !string.IsNullOrWhiteSpace( appTexture ) )
 					return appTexture;
 			}
 		}
 
-		var extensionTextureName = item.Extension.TrimStart( '.' ).ToLowerInvariant();
+		var extensionTextureName = $"Ext_{item.Extension.TrimStart( '.' ).ToLowerInvariant()}";
 		return TryResolveTexturePath( extensionTextureName );
 	}
 
-	private static string TryResolveTexturePath( string textureName )
+	private string TryResolveTexturePath( string textureName )
 	{
 		if ( string.IsNullOrWhiteSpace( textureName ) )
 			return "";
 
-		var path = $"textures/{textureName}.png";
+		var themeName = string.IsNullOrWhiteSpace( context.Computer.ThemeName )
+			? "default"
+			: context.Computer.ThemeName.Trim();
+		var path = $"textures/themes/{themeName}/{textureName}.png";
 		try
 		{
 			return FileSystem.Mounted.FileExists( path ) ? path : "";
@@ -459,6 +468,23 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		{
 			return "";
 		}
+	}
+
+	private static string ResolveAppTextureKey( ComputerAppDescriptor app )
+	{
+		return app.Id switch
+		{
+			"system.about" => "about",
+			"system.calculator" => "calculator",
+			"system.settings" => "controlPanel",
+			"system.notepad" => "notepad",
+			"system.paint" => "paint",
+			"system.paneexplorer" => "paneExplorer",
+			"system.ridge" => "ridge",
+			"system.taskmanager" => "taskManager",
+			"system.mediaplayer" => "mediaPlayer",
+			_ => Path.GetFileNameWithoutExtension( app.ResolvedExecutableName )
+		};
 	}
 
 	private static string ResolveFallbackIconText( PaneArchiveItem item )
@@ -498,10 +524,24 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		SyncSelectionStyles();
 	}
 
+	private void ClearSelectionAndHideContextMenu()
+	{
+		selectedPath = null;
+		SyncSelectionStyles();
+		HideContextMenu();
+	}
+
 	private void SyncSelectionStyles()
 	{
 		foreach ( var row in rowByPath )
 			row.Value.SetClass( "selected", string.Equals( selectedPath, row.Key, StringComparison.OrdinalIgnoreCase ) );
+	}
+
+	private void PositionContextMenuNearCursor()
+	{
+		var position = MousePosition;
+		contextMenuHost.Style.Left = Length.Pixels( MathF.Max( 4f, position.x + 12f ) );
+		contextMenuHost.Style.Top = Length.Pixels( MathF.Max( 4f, position.y + 4f ) );
 	}
 }
 

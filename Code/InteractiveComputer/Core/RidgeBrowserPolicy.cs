@@ -6,10 +6,17 @@ namespace PaneOS.InteractiveComputer.Core;
 
 public static class RidgeBrowserPolicy
 {
+	private static readonly IReadOnlyList<string> DefaultCreditHosts = new[]
+	{
+		"github.com",
+		"flaticon.com",
+		"www.flaticon.com"
+	};
+
 	public static RidgePolicyResult Evaluate( string rawUrl, string? webRenderingEnabled, string? allowedHosts )
 	{
 		var normalizedUrl = NormalizeUrl( rawUrl );
-		var hosts = ParseHostList( allowedHosts ?? "" );
+		var hosts = MergeDefaultHosts( ParseHostList( allowedHosts ?? "" ) );
 		var renderingEnabled = IsTruthy( webRenderingEnabled );
 
 		if ( normalizedUrl.StartsWith( "paneos://", StringComparison.OrdinalIgnoreCase ) )
@@ -51,7 +58,8 @@ public static class RidgeBrowserPolicy
 			};
 		}
 
-		if ( !renderingEnabled )
+		var isDefaultCreditHost = IsHostAllowed( uri.Host, DefaultCreditHosts );
+		if ( !renderingEnabled && !isDefaultCreditHost )
 		{
 			return new RidgePolicyResult
 			{
@@ -131,6 +139,15 @@ public static class RidgeBrowserPolicy
 		}
 
 		return false;
+	}
+
+	private static IReadOnlyList<string> MergeDefaultHosts( IReadOnlyList<string> configuredHosts )
+	{
+		return DefaultCreditHosts
+			.Concat( configuredHosts )
+			.Select( x => x.ToLowerInvariant() )
+			.Distinct()
+			.ToArray();
 	}
 }
 

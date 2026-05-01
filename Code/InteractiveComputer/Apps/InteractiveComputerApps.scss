@@ -6,6 +6,7 @@
 	gap: 8px;
 	background-color: #ffffff;
 	color: #111;
+	overflow: scroll;
 }
 
 .app-document,
@@ -75,6 +76,32 @@
 
 .about-value {
 	color: #204e91;
+}
+
+.about-credits {
+	margin-top: 10px;
+	flex-direction: column;
+	border: 1px solid #c8d4ea;
+	background: linear-gradient(180deg, #fbfdff, #eef4ff);
+}
+
+.about-credits-title {
+	height: 28px;
+	align-items: center;
+	padding: 0 10px;
+	font-weight: 700;
+	color: #244a87;
+	background-color: #dce8fb;
+}
+
+.about-credit-link {
+	height: 24px;
+	padding: 0 10px;
+	justify-content: flex-start;
+	border-top: 1px solid #dce6f6;
+	background-color: #ffffff;
+	color: #245aa1;
+	text-align: left;
 }
 
 .settings-section-title {
@@ -166,21 +193,21 @@
 	width: 100%;
 	height: 100%;
 	flex-direction: column;
-	padding: 12px;
-	gap: 10px;
+	padding: 8px;
+	gap: 7px;
 	background: linear-gradient(180deg, #ffffff, #eef2fa);
 }
 
 .calculator-display {
-	height: 48px;
+	height: 38px;
 	align-items: center;
 	justify-content: flex-end;
-	padding: 0 12px;
+	padding: 0 8px;
 	border: 1px solid #9fb0cf;
 	background: #ffffff;
-	font-size: 26px;
+	font-size: 22px;
 	font-weight: 700;
-	line-height: 48px;
+	line-height: 38px;
 	white-space: nowrap;
 	overflow: hidden;
 	text-align: right;
@@ -188,33 +215,32 @@
 
 .calculator-display label {
 	width: 100%;
-	font-size: 26px;
-	line-height: 48px;
+	font-size: 22px;
+	line-height: 38px;
 	font-weight: 700;
 	text-align: right;
 }
 
 .calculator-grid {
-	justify-content: space-between;
-	flex-wrap: wrap;
-	gap: 8px;
+	flex-grow: 1;
+	flex-direction: column;
+	gap: 5px;
 }
 
-.calculator-footer {
-	height: 42px;
-	justify-content: flex-end;
+.calculator-row {
+	flex-grow: 1;
+	gap: 5px;
 }
 
-.calculator-button,
-.calculator-clear {
-	width: 74px;
-	height: 42px;
+.calculator-button {
+	flex-grow: 1;
+	height: 100%;
 	align-items: center;
 	justify-content: center;
 	border: 1px solid #8ea1bf;
 	background: linear-gradient(180deg, #ffffff, #dde6f5);
 	color: #1c3d73;
-	font-size: 16px;
+	font-size: 14px;
 	font-weight: 700;
 }
 
@@ -868,8 +894,6 @@
 
 .explorer-context-menu-host {
 	position: absolute;
-	right: 14px;
-	top: 74px;
 	z-index: 5;
 }
 
@@ -937,6 +961,13 @@
 	white-space: nowrap;
 	text-overflow: ellipsis;
 	overflow: hidden;
+	font-size: 12px;
+	line-height: 18px;
+}
+
+.explorer-row label {
+	font-size: 12px;
+	line-height: 18px;
 }
 
 .explorer-header-cell {

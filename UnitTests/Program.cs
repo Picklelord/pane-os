@@ -5,6 +5,7 @@ var tests = new (string Name, Action Body)[]
 {
 	("Ridge normalizes bare hosts to https", RidgeNormalizesBareHosts),
 	("Ridge blocks external websites by default", RidgeBlocksByDefault),
+	("Ridge allows PaneOS credit links by default", RidgeAllowsCreditLinksByDefault),
 	("Ridge allows exact whitelisted host when enabled", RidgeAllowsExactHost),
 	("Ridge allows wildcard subdomains only", RidgeAllowsWildcardSubdomainsOnly),
 	("Ridge blocks unsupported protocols", RidgeBlocksUnsupportedProtocols),
@@ -21,6 +22,7 @@ var tests = new (string Name, Action Body)[]
 	("Task Manager process sorting prefers highest CPU first", TaskManagerSortingUsesSelectedField),
 	("Archive user policy prefers Steam name and falls back to USERNAME", ArchiveUserPolicyPrefersSteamThenUsername),
 	("Archive ensure migrates legacy Player folder to persisted username", ArchiveMigratesLegacyPlayerFolder),
+	("Archive listing Users folder is safe", ArchiveListingUsersFolderIsSafe),
 	("File dialog policy normalizes extension filters", FileDialogPolicyNormalizesExtensions),
 	("File dialog policy resolves save paths in current folder", FileDialogPolicyResolvesSavePath),
 	("Wallpaper policy normalizes known wallpapers", WallpaperPolicyNormalizesKnownValues),
@@ -75,6 +77,15 @@ static void RidgeBlocksByDefault()
 	var result = RidgeBrowserPolicy.Evaluate( "https://sbox.game", null, "sbox.game" );
 	False( result.CanRenderWebPanel );
 	Equal( "Rendering disabled", result.Status );
+}
+
+static void RidgeAllowsCreditLinksByDefault()
+{
+	var result = RidgeBrowserPolicy.Evaluate( "https://www.flaticon.com/free-icons/video", null, "" );
+	True( result.CanRenderWebPanel );
+	Equal( "Loaded www.flaticon.com", result.Status );
+	True( result.AllowedHosts.Contains( "github.com" ) );
+	True( result.AllowedHosts.Contains( "www.flaticon.com" ) );
 }
 
 static void RidgeAllowsExactHost()
@@ -314,6 +325,37 @@ static void WallpaperPolicyUsesDesktopImageByDefault()
 {
 	var style = ComputerWallpaperPolicy.GetBackgroundStyle( "default" );
 	AssertContains( "background-color: #2c7cb7", style );
+}
+
+static void ArchiveListingUsersFolderIsSafe()
+{
+	var tempPath = Path.Combine( Path.GetTempPath(), $"paneos-users-{Guid.NewGuid():N}.datc" );
+	try
+	{
+		var apps = new[]
+		{
+			new ComputerAppDescriptor
+			{
+				Id = "system.notepad",
+				Title = "Notepad",
+				Factory = () => new StubComputerApp()
+			}
+		};
+		PaneArchiveFileSystem.EnsureArchive( tempPath, "Alice", apps );
+
+		var root = PaneArchiveFileSystem.GetItems( tempPath, Array.Empty<string>() );
+		var users = PaneArchiveFileSystem.GetItems( tempPath, new[] { "C:", "Users" } );
+		var appFolderItems = PaneArchiveFileSystem.GetItems( tempPath, new[] { "C:", "Apps" } );
+
+		True( root.Any( x => x.Name == "C:" ) );
+		True( users.Any( x => x.Name == "Alice" ) );
+		True( appFolderItems.Count > 0 );
+	}
+	finally
+	{
+		if ( File.Exists( tempPath ) )
+			File.Delete( tempPath );
+	}
 }
 
 static void ArchiveTextFilesRoundTrip()

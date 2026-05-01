@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sandbox.UI;
 
 namespace PaneOS.InteractiveComputer.Apps;
@@ -19,6 +20,30 @@ public sealed class AboutComputerApp : IComputerApp
 [StyleSheet( "InteractiveComputerApps.scss" )]
 public sealed class AboutComputerPanel : ComputerWarmupPanel
 {
+	private sealed record CreditLink( string Label, string Url );
+
+	private static readonly IReadOnlyList<CreditLink> Credits = new[]
+	{
+		new CreditLink( "Pane OS, created by Daniel Garnier", "https://github.com/Picklelord/pane-os" ),
+		new CreditLink( "Video icons by riajulislam - Flaticon", "https://www.flaticon.com/free-icons/video" ),
+		new CreditLink( "Radio icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/radio" ),
+		new CreditLink( "Mp3 icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/mp3" ),
+		new CreditLink( "Exe icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/exe" ),
+		new CreditLink( "Document icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/document" ),
+		new CreditLink( "Painting icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/painting" ),
+		new CreditLink( "Seo and web icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/seo-and-web" ),
+		new CreditLink( "Search icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/search" ),
+		new CreditLink( "Notepad icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/notepad" ),
+		new CreditLink( "Calculator icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/calculator" ),
+		new CreditLink( "Checklist icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/checklist" ),
+		new CreditLink( "Recycle bin icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/recycle-bin" ),
+		new CreditLink( "Control panel icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/control-panel" ),
+		new CreditLink( "Computer icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/computer" ),
+		new CreditLink( "Folder icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/folder" ),
+		new CreditLink( "Picture icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/picture" ),
+		new CreditLink( "Film icons by Freepik - Flaticon", "https://www.flaticon.com/free-icons/film" )
+	};
+
 	private readonly ComputerAppContext context;
 	private int lastVersion = -1;
 
@@ -72,6 +97,25 @@ public sealed class AboutComputerPanel : ComputerWarmupPanel
 		{
 			Parent = this
 		}.AddClass( "app-note" );
+
+		var creditsPanel = new Panel { Parent = this };
+		creditsPanel.AddClass( "about-credits" );
+		new Label( "Credits" ) { Parent = creditsPanel }.AddClass( "about-credits-title" );
+
+		foreach ( var credit in Credits )
+		{
+			var button = new Button( credit.Label ) { Parent = creditsPanel };
+			button.AddClass( "about-credit-link" );
+			button.AddEventListener( "onclick", () => OpenCreditLink( credit.Url ) );
+		}
+	}
+
+	private void OpenCreditLink( string url )
+	{
+		context.Runtime.OpenApp( "system.ridge", new Dictionary<string, string>
+		{
+			["url"] = url
+		} );
 	}
 
 	private static void AddMetric( Panel parent, string label, string value )
