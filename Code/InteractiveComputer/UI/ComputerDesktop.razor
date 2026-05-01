@@ -248,7 +248,7 @@
 							<label>@messageBox.Options.Message</label>
 							@if ( messageBox.Options.HasTextInput )
 							{
-								<ComputerMessageBoxTextEntry MessageBox=@messageBox />
+								<ComputerMessageBoxTextEntry MessageBox=@messageBox OnTextChanged=@UpdateMessageBoxText />
 							}
 						</div>
 					</div>
@@ -292,7 +292,7 @@
 					{
 						<div class="file-dialog-name-row">
 							<label>File name</label>
-							<ComputerFileDialogTextEntry FileDialog=@fileDialog />
+							<ComputerFileDialogTextEntry FileDialog=@fileDialog OnTextChanged=@UpdateFileDialogFileName />
 						</div>
 					}
 					<div class="message-box-actions">
@@ -512,6 +512,11 @@
 		StateHasChanged();
 	}
 
+	private void UpdateMessageBoxText( string value )
+	{
+		Runtime?.UpdateMessageBoxText( value );
+	}
+
 	private void NavigateFileDialogTo( string virtualPath )
 	{
 		Runtime?.NavigateFileDialogTo( virtualPath );
@@ -540,6 +545,11 @@
 	{
 		Runtime?.ConfirmFileDialog();
 		StateHasChanged();
+	}
+
+	private void UpdateFileDialogFileName( string value )
+	{
+		Runtime?.UpdateFileDialogFileName( value );
 	}
 
 	private void CancelFileDialog()

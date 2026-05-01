@@ -1,3 +1,3 @@
 # TODO
 
-- No active TODOs.
+- Reduce resize flicker while dragging the bottom-right window resize grip.

@@ -8,6 +8,7 @@
 @code
 {
 	[Parameter] public ComputerActiveFileDialog? FileDialog { get; set; }
+	[Parameter] public Action<string>? OnTextChanged { get; set; }
 	private Guid boundId;
 
 	protected override void OnAfterTreeRender( bool firstTime )
@@ -43,5 +44,7 @@
 	{
 		if ( FileDialog is not null )
 			FileDialog.CurrentFileName = value;
+
+		OnTextChanged?.Invoke( value );
 	}
 }

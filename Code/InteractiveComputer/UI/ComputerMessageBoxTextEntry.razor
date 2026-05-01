@@ -8,6 +8,7 @@
 @code
 {
 	[Parameter] public ComputerActiveMessageBox? MessageBox { get; set; }
+	[Parameter] public Action<string>? OnTextChanged { get; set; }
 	private Guid boundId;
 
 	protected override void OnAfterTreeRender( bool firstTime )
@@ -44,5 +45,7 @@
 	{
 		if ( MessageBox is not null )
 			MessageBox.CurrentText = value;
+
+		OnTextChanged?.Invoke( value );
 	}
 }

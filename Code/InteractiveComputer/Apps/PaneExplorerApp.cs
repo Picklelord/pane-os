@@ -125,17 +125,19 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 				if ( string.IsNullOrWhiteSpace( input ) )
 					return;
 
+				var createdName = input.Trim();
 				var extension = Path.GetExtension( input );
 				if ( string.IsNullOrWhiteSpace( extension ) )
 				{
-					PaneArchiveFileSystem.CreateFolder( archivePath, currentPath, input );
+					PaneArchiveFileSystem.CreateFolder( archivePath, currentPath, createdName );
 				}
 				else
 				{
-					var fileName = Path.GetFileNameWithoutExtension( input );
+					var fileName = Path.GetFileNameWithoutExtension( createdName );
 					PaneArchiveFileSystem.CreateFile( archivePath, currentPath, fileName, extension.TrimStart( '.' ) );
 				}
 
+				selectedPath = BuildChildVirtualPath( currentPath, createdName );
 				context.Runtime.RefreshTransientUi();
 				RefreshListing();
 			} );
@@ -214,18 +216,23 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		listHost.DeleteChildren( true );
 		rowByPath.Clear();
 
+		if ( currentPath.Count > 0 )
+			AddParentDirectoryRow();
+
 		foreach ( var item in PaneArchiveFileSystem.GetItems( archivePath, currentPath ) )
 		{
-			var row = new ExplorerItemRow( item.VirtualPath, item.IsDirectory ) { Parent = listHost };
+			var row = new ExplorerItemRow(
+				item.VirtualPath,
+				item.IsDirectory,
+				() => SelectPath( item.VirtualPath ),
+				() => ActivateItem( item ),
+				() => ShowContextMenu( item.VirtualPath ) )
+			{
+				Parent = listHost
+			};
 			row.AddClass( "explorer-row" );
 			rowByPath[item.VirtualPath] = row;
 			row.SetClass( "selected", string.Equals( selectedPath, item.VirtualPath, StringComparison.OrdinalIgnoreCase ) );
-			row.AddEventListener( "onclick", () =>
-			{
-				SelectPath( item.VirtualPath );
-			} );
-			row.AddEventListener( "oncontextmenu", () => ShowContextMenu( item.VirtualPath ) );
-			row.AddEventListener( "ondblclick", () => ActivateItem( item ) );
 
 			var nameCell = new Panel { Parent = row };
 			nameCell.AddClass( "explorer-cell explorer-name-cell" );
@@ -237,6 +244,29 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		}
 
 		SyncSelectionStyles();
+	}
+
+	private void AddParentDirectoryRow()
+	{
+		var parentPath = currentPath.Take( currentPath.Count - 1 ).ToArray();
+		var row = new ExplorerItemRow(
+			"/" + string.Join( "/", parentPath ),
+			true,
+			() => selectedPath = null,
+			() => NavigateTo( parentPath ),
+			() => { } )
+		{
+			Parent = listHost
+		};
+		row.AddClass( "explorer-row explorer-parent-row" );
+
+		var nameCell = new Panel { Parent = row };
+		nameCell.AddClass( "explorer-cell explorer-name-cell" );
+		var icon = new Label( "UP" ) { Parent = nameCell };
+		icon.AddClass( "explorer-item-icon" );
+		new Label( ".." ) { Parent = nameCell }.AddClass( "explorer-item-name" );
+		AddCell( row, "Parent" );
+		AddCell( row, "-" );
 	}
 
 	private void ActivateItem( PaneArchiveItem item )
@@ -385,14 +415,42 @@ public sealed class ExplorerItemRow : Panel
 {
 	private readonly string virtualPath;
 	private readonly bool isDirectory;
+	private readonly Action select;
+	private readonly Action activate;
+	private readonly Action openContextMenu;
 
-	public ExplorerItemRow( string virtualPath, bool isDirectory )
+	public ExplorerItemRow( string virtualPath, bool isDirectory, Action select, Action activate, Action openContextMenu )
 	{
 		this.virtualPath = virtualPath;
 		this.isDirectory = isDirectory;
+		this.select = select;
+		this.activate = activate;
+		this.openContextMenu = openContextMenu;
 	}
 
 	public override bool WantsDrag => !isDirectory;
+
+	protected override void OnMouseDown( MousePanelEvent e )
+	{
+		base.OnMouseDown( e );
+
+		if ( e.Button == "mouseright" )
+			openContextMenu();
+		else
+			select();
+
+		e.StopPropagation();
+	}
+
+	protected override void OnDoubleClick( MousePanelEvent e )
+	{
+		base.OnDoubleClick( e );
+
+		if ( e.Button == "mouseleft" )
+			activate();
+
+		e.StopPropagation();
+	}
 
 	protected override void OnDragStart( DragEvent e )
 	{
