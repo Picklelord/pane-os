@@ -104,7 +104,7 @@ public sealed class InteractiveComputerComponent : Component
 		Runtime.ResetScreenSaverIdle();
 		Runtime.RefreshWindowAppSessions();
 		Runtime.MarkChanged();
-		pendingExitRefreshFrames = 4;
+		pendingExitRefreshFrames = 10;
 	}
 
 	public void ToggleInteraction( GameObject? player )

@@ -28,7 +28,9 @@ var tests = new (string Name, Action Body)[]
 	("Wallpaper policy normalizes known wallpapers", WallpaperPolicyNormalizesKnownValues),
 	("Wallpaper policy uses the desktop background image by default", WallpaperPolicyUsesDesktopImageByDefault),
 	("Archive text files round-trip through My Documents", ArchiveTextFilesRoundTrip),
+	("Archive create resolves duplicate folder and file names", ArchiveCreateResolvesDuplicateNames),
 	("Archive rename updates file names in place", ArchiveRenameMovesEntries),
+	("Archive rename preserves file extension when omitted", ArchiveRenamePreservesFileExtension),
 	("Archive delete can move items to recycle bin and restore them", ArchiveRecycleBinRoundTrip),
 	("Archive restore reuses recreated empty parent folders", ArchiveRestoreReusesEmptyDefaultFolder),
 	("File associations open text files in Notepad", FileAssociationsOpenTextFiles),
@@ -40,6 +42,7 @@ var tests = new (string Name, Action Body)[]
 	("Desktop shortcut layout wraps into additional columns", DesktopShortcutLayoutWrapsColumns),
 	("Desktop selection rectangle captures intersecting shortcuts", DesktopSelectionCapturesIntersectingShortcuts),
 	("Window layout policy honors app defaults and cascades offsets", WindowLayoutPolicyHonorsDescriptorDefaults),
+	("Window layout policy honors saved size overrides", WindowLayoutPolicyHonorsSavedOverrides),
 	("Maintenance policy generates visible update and install logs", MaintenancePolicyGeneratesLogs),
 	("Media playlist policy respects repeat modes", MediaPlaylistPolicyRespectsRepeatModes),
 	("Media playlist shuffle preserves all items", MediaPlaylistShufflePreservesItems),
@@ -377,6 +380,31 @@ static void ArchiveTextFilesRoundTrip()
 	}
 }
 
+static void ArchiveCreateResolvesDuplicateNames()
+{
+	var tempPath = Path.Combine( Path.GetTempPath(), $"paneos-create-{Guid.NewGuid():N}.datc" );
+	try
+	{
+		PaneArchiveFileSystem.EnsureArchive( tempPath, "Alice", Array.Empty<ComputerAppDescriptor>() );
+		var parentPath = new[] { "C:", "Users", "Alice", "My Documents" };
+
+		var folderA = PaneArchiveFileSystem.CreateFolder( tempPath, parentPath, "Projects" );
+		var folderB = PaneArchiveFileSystem.CreateFolder( tempPath, parentPath, "Projects" );
+		var fileA = PaneArchiveFileSystem.CreateFile( tempPath, parentPath, "Notes", "txt", "a" );
+		var fileB = PaneArchiveFileSystem.CreateFile( tempPath, parentPath, "Notes", "txt", "b" );
+
+		Equal( "Projects", folderA );
+		Equal( "Projects (2)", folderB );
+		Equal( "Notes.txt", fileA );
+		Equal( "Notes (2).txt", fileB );
+	}
+	finally
+	{
+		if ( File.Exists( tempPath ) )
+			File.Delete( tempPath );
+	}
+}
+
 static void ArchiveRenameMovesEntries()
 {
 	var tempPath = Path.Combine( Path.GetTempPath(), $"paneos-rename-{Guid.NewGuid():N}.datc" );
@@ -417,6 +445,27 @@ static void ArchiveRecycleBinRoundTrip()
 		True( PaneArchiveFileSystem.Exists( tempPath, originalPath ) );
 		Equal( "/C:/Users/Alice/My Documents/Draft.txt", restoredPath );
 		Equal( "draft", PaneArchiveFileSystem.ReadTextFile( tempPath, originalPath ) );
+	}
+	finally
+	{
+		if ( File.Exists( tempPath ) )
+			File.Delete( tempPath );
+	}
+}
+
+static void ArchiveRenamePreservesFileExtension()
+{
+	var tempPath = Path.Combine( Path.GetTempPath(), $"paneos-rename-ext-{Guid.NewGuid():N}.datc" );
+	try
+	{
+		PaneArchiveFileSystem.EnsureArchive( tempPath, "Alice", Array.Empty<ComputerAppDescriptor>() );
+		var originalPath = new[] { "C:", "Users", "Alice", "My Documents", "Notes.txt" };
+		PaneArchiveFileSystem.WriteTextFile( tempPath, originalPath, "todo" );
+
+		var renamed = PaneArchiveFileSystem.Rename( tempPath, originalPath, "Todo" );
+
+		Equal( "Todo.txt", renamed );
+		True( PaneArchiveFileSystem.Exists( tempPath, new[] { "C:", "Users", "Alice", "My Documents", "Todo.txt" } ) );
 	}
 	finally
 	{
@@ -593,6 +642,28 @@ static void WindowLayoutPolicyHonorsDescriptorDefaults()
 	Equal( 68, bounds.Y );
 	Equal( 320, bounds.Width );
 	Equal( 360, bounds.Height );
+}
+
+static void WindowLayoutPolicyHonorsSavedOverrides()
+{
+	var descriptor = new ComputerAppDescriptor
+	{
+		Id = "system.calc",
+		Title = "Calculator",
+		Icon = "CA",
+		DefaultWindowOffsetX = 32,
+		DefaultWindowOffsetY = 24,
+		DefaultWindowWidth = 320,
+		DefaultWindowHeight = 360,
+		Factory = () => new StubComputerApp()
+	};
+
+	var bounds = ComputerWindowLayoutPolicy.ResolveInitialBounds( descriptor, 1024, 768, 1, 420, 540 );
+
+	Equal( 54, bounds.X );
+	Equal( 46, bounds.Y );
+	Equal( 420, bounds.Width );
+	Equal( 540, bounds.Height );
 }
 
 static void MaintenancePolicyGeneratesLogs()

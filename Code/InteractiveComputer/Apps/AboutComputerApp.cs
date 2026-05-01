@@ -105,10 +105,13 @@ public sealed class AboutComputerPanel : ComputerWarmupPanel
 		creditsPanel.AddClass( "about-credits" );
 		new Label( "Credits" ) { Parent = creditsPanel }.AddClass( "about-credits-title" );
 
-		foreach ( var credit in Credits )
+		for ( var index = 0; index < Credits.Count; index++ )
 		{
+			var credit = Credits[index];
 			var button = new Button( credit.Label ) { Parent = creditsPanel };
 			button.AddClass( "about-credit-link" );
+			if ( index == 0 )
+				button.AddClass( "about-credit-link-primary" );
 			button.AddEventListener( "onclick", () => OpenCreditLink( credit.Url ) );
 		}
 	}

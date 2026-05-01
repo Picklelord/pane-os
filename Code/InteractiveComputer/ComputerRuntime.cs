@@ -356,7 +356,7 @@ public sealed class ComputerRuntime
 
 	public void RefreshWindowAppSessions()
 	{
-		foreach ( var app in OpenApps.Where( x => x.Descriptor.HasWindow && !x.State.IsMinimized ).ToArray() )
+		foreach ( var app in OpenApps.Where( x => x.Descriptor.HasWindow ).ToArray() )
 		{
 			if ( app.State.AppId.Equals( "system.ridge", StringComparison.OrdinalIgnoreCase ) && app.Session.Content.IsValid )
 				continue;
@@ -830,7 +830,13 @@ public sealed class ComputerRuntime
 		}
 
 		var visibleWindowCount = State.OpenApps.Count( x => GetDescriptor( x.AppId )?.HasWindow == true );
-		var initialBounds = ComputerWindowLayoutPolicy.ResolveInitialBounds( descriptor, State.ResolutionX, State.ResolutionY, visibleWindowCount );
+		var initialBounds = ComputerWindowLayoutPolicy.ResolveInitialBounds(
+			descriptor,
+			State.ResolutionX,
+			State.ResolutionY,
+			visibleWindowCount,
+			LoadAppSettingInt( descriptor.Id, "window_width", descriptor.DefaultWindowWidth ),
+			LoadAppSettingInt( descriptor.Id, "window_height", descriptor.DefaultWindowHeight ) );
 		var appState = new ComputerAppState
 		{
 			InstanceId = Guid.NewGuid().ToString( "N" ),
@@ -920,6 +926,15 @@ public sealed class ComputerRuntime
 		State.InstalledApps.Add( installedApp );
 		Apps = ResolveInstalledApps();
 		return installedApp;
+	}
+
+	private int? LoadAppSettingInt( string appId, string key, int? fallback )
+	{
+		var value = LoadAppSetting( appId, key );
+		if ( int.TryParse( value, out var parsed ) )
+			return parsed;
+
+		return fallback;
 	}
 
 	private IReadOnlyList<ComputerAppDescriptor> ResolveInstalledApps()

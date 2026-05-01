@@ -955,6 +955,9 @@
 
 	private string ResolveAppTexturePath( ComputerAppDescriptor app )
 	{
+		if ( app.Id.Equals( "system.mediaplayer", StringComparison.OrdinalIgnoreCase ) )
+			return ResolveThemeTexturePath( "Ext_mp4" );
+
 		return ResolveThemeTexturePath( $"App_{ResolveAppTextureKey( app )}" );
 	}
 
@@ -999,7 +1002,6 @@
 			"system.paneexplorer" => "paneExplorer",
 			"system.ridge" => "ridge",
 			"system.taskmanager" => "taskManager",
-			"system.mediaplayer" => "Ext_mp4",
 			_ => app.ResolvedExecutableName.EndsWith( ".exe", StringComparison.OrdinalIgnoreCase )
 				? app.ResolvedExecutableName[..^4]
 				: app.ResolvedExecutableName

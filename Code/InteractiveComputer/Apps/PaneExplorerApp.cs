@@ -64,32 +64,32 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 	{
 		DeleteChildren( true );
 
+		pathLabel = new Label { Parent = this };
+		pathLabel.AddClass( "explorer-path" );
+
 		var toolbar = new Panel { Parent = this };
 		toolbar.AddClass( "explorer-toolbar" );
 
 		CreateToolbarButton( toolbar, "<", NavigateBack, "explorer-button-small" );
 		CreateToolbarButton( toolbar, ">", NavigateForward, "explorer-button-small" );
-		if ( currentPath.Count > 0 )
+		if ( !IsAtRootPath() )
 			CreateToolbarButton( toolbar, "My PC", () => NavigateTo( Array.Empty<string>() ), "explorer-button-wide" );
-		if ( !currentPath.SequenceEqual( documentsPath ) )
+		if ( !IsAtDocumentsPath() )
 			CreateToolbarButton( toolbar, "My Documents", () => NavigateTo( documentsPath ), "explorer-button-xl" );
-		if ( !IsRecycleBinPath( currentPath ) )
+		if ( !IsAtRecycleBinPath() )
 			CreateToolbarButton( toolbar, "Recycle Bin", () => NavigateTo( RecycleBinPath ), "explorer-button-xl" );
 		CreateToolbarButton( toolbar, "Rename", PromptRenameSelected );
-		if ( IsRecycleBinPath( currentPath ) )
+		if ( IsAtRecycleBinPath() )
 			CreateToolbarButton( toolbar, "Restore", RestoreSelected );
-
-		pathLabel = new Label { Parent = this };
-		pathLabel.AddClass( "explorer-path" );
 
 		var table = new Panel { Parent = this };
 		table.AddClass( "explorer-table" );
 
 		var header = new Panel { Parent = table };
 		header.AddClass( "explorer-row explorer-header" );
-		AddCell( header, "Name", true );
-		AddCell( header, "Type", true );
-		AddCell( header, "Size", true );
+		AddCell( header, "Name", "explorer-cell explorer-name-column", true );
+		AddCell( header, "Type", "explorer-cell explorer-type-column", true );
+		AddCell( header, "Size", "explorer-cell explorer-size-column", true );
 
 		listHost = new ExplorerListPanel( ShowFolderContextMenu, ClearSelectionAndHideContextMenu ) { Parent = table };
 		listHost.AddClass( "explorer-list" );
@@ -127,7 +127,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 				if ( !result.ButtonPressed.Equals( "Create", StringComparison.OrdinalIgnoreCase ) )
 					return;
 
-				var input = result.TextValue.Trim();
+				var input = result.TextValue?.Trim() ?? "";
 				if ( string.IsNullOrWhiteSpace( input ) )
 					return;
 
@@ -135,12 +135,12 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 				var extension = Path.GetExtension( input );
 				if ( string.IsNullOrWhiteSpace( extension ) )
 				{
-					PaneArchiveFileSystem.CreateFolder( archivePath, currentPath, createdName );
+					createdName = PaneArchiveFileSystem.CreateFolder( archivePath, currentPath, createdName );
 				}
 				else
 				{
 					var fileName = Path.GetFileNameWithoutExtension( createdName );
-					PaneArchiveFileSystem.CreateFile( archivePath, currentPath, fileName, extension.TrimStart( '.' ) );
+					createdName = PaneArchiveFileSystem.CreateFile( archivePath, currentPath, fileName, extension.TrimStart( '.' ) );
 				}
 
 				selectedPath = BuildChildVirtualPath( currentPath, createdName );
@@ -174,13 +174,13 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 				if ( !result.ButtonPressed.Equals( "Rename", StringComparison.OrdinalIgnoreCase ) )
 					return;
 
-				var newName = result.TextValue.Trim();
+				var newName = result.TextValue?.Trim() ?? "";
 				if ( string.IsNullOrWhiteSpace( newName ) )
 					return;
 
-				PaneArchiveFileSystem.Rename( archivePath, ParsePath( targetPath ), newName );
-				selectedPath = BuildChildVirtualPath( currentPath, newName );
-				context.Runtime.PushNotification( "Renamed", $"{currentName} is now {newName}.", "R" );
+				var resolvedName = PaneArchiveFileSystem.Rename( archivePath, ParsePath( targetPath ), newName );
+				selectedPath = BuildChildVirtualPath( currentPath, resolvedName );
+				context.Runtime.PushNotification( "Renamed", $"{currentName} is now {resolvedName}.", "R" );
 				context.Runtime.RefreshTransientUi();
 				RefreshListing();
 			} );
@@ -227,7 +227,19 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		if ( currentPath.Count > 0 )
 			AddParentDirectoryRow();
 
-		foreach ( var item in PaneArchiveFileSystem.GetItems( archivePath, currentPath ) )
+		IReadOnlyList<PaneArchiveItem> items;
+		try
+		{
+			items = PaneArchiveFileSystem.GetItems( archivePath, currentPath );
+		}
+		catch ( Exception )
+		{
+			currentPath = documentsPath.ToArray();
+			context.SaveValue( "path", "/" + string.Join( "/", currentPath ) );
+			items = PaneArchiveFileSystem.GetItems( archivePath, currentPath );
+		}
+
+		foreach ( var item in items )
 		{
 			var row = new ExplorerItemRow(
 				item.VirtualPath,
@@ -246,8 +258,8 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 			nameCell.AddClass( "explorer-cell explorer-name-cell" );
 			CreateItemIcon( nameCell, item );
 			new Label( item.Name ) { Parent = nameCell }.AddClass( "explorer-item-name" );
-			AddCell( row, item.IsDirectory ? "Folder" : item.Extension.TrimStart( '.' ).ToUpperInvariant() + " File" );
-			AddCell( row, item.IsDirectory ? "-" : FormatSize( item.SizeBytes ) );
+			AddCell( row, item.IsDirectory ? "Folder" : item.Extension.TrimStart( '.' ).ToUpperInvariant() + " File", "explorer-cell explorer-type-column" );
+			AddCell( row, item.IsDirectory ? "-" : FormatSize( item.SizeBytes ), "explorer-cell explorer-size-column" );
 		}
 
 		SyncSelectionStyles();
@@ -271,8 +283,8 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		nameCell.AddClass( "explorer-cell explorer-name-cell" );
 		new Panel { Parent = nameCell }.AddClass( "explorer-parent-spacer" );
 		new Label( ".." ) { Parent = nameCell }.AddClass( "explorer-item-name" );
-		AddCell( row, "Parent" );
-		AddCell( row, "-" );
+		AddCell( row, "Parent", "explorer-cell explorer-type-column" );
+		AddCell( row, "-", "explorer-cell explorer-size-column" );
 	}
 
 	private void ActivateItem( PaneArchiveItem item )
@@ -439,8 +451,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 			var app = context.Runtime.Apps.FirstOrDefault( x => x.ResolvedExecutableName.Equals( item.Name, StringComparison.OrdinalIgnoreCase ) );
 			if ( app is not null )
 			{
-				var appTextureName = $"App_{ResolveAppTextureKey( app )}";
-				var appTexture = TryResolveTexturePath( appTextureName );
+				var appTexture = ResolveAppTexturePath( app );
 				if ( !string.IsNullOrWhiteSpace( appTexture ) )
 					return appTexture;
 			}
@@ -481,9 +492,16 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 			"system.paneexplorer" => "paneExplorer",
 			"system.ridge" => "ridge",
 			"system.taskmanager" => "taskManager",
-			"system.mediaplayer" => "Ext_mp4",
 			_ => Path.GetFileNameWithoutExtension( app.ResolvedExecutableName )
 		};
+	}
+
+	private string ResolveAppTexturePath( ComputerAppDescriptor app )
+	{
+		if ( app.Id.Equals( "system.mediaplayer", StringComparison.OrdinalIgnoreCase ) )
+			return TryResolveTexturePath( "Ext_mp4" );
+
+		return TryResolveTexturePath( $"App_{ResolveAppTextureKey( app )}" );
 	}
 
 	private static string ResolveFallbackIconText( PaneArchiveItem item )
@@ -498,9 +516,37 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		return "FI";
 	}
 
+	private bool IsAtRootPath()
+	{
+		return currentPath.Count == 0;
+	}
+
+	private bool IsAtDocumentsPath()
+	{
+		return PathEquals( currentPath, documentsPath );
+	}
+
+	private bool IsAtRecycleBinPath()
+	{
+		return IsRecycleBinPath( currentPath );
+	}
+
+	private static bool PathEquals( IReadOnlyList<string> left, IReadOnlyList<string> right )
+	{
+		return left.Count == right.Count && left.SequenceEqual( right, StringComparer.OrdinalIgnoreCase );
+	}
+
+	private static void AddCell( Panel row, string text, string className, bool header = false )
+	{
+		var cell = new Label( text ) { Parent = row };
+		cell.AddClass( className );
+		if ( header )
+			cell.AddClass( "explorer-header-cell" );
+	}
+
 	private static void AddCell( Panel row, string text, bool header = false )
 	{
-		new Label( text ) { Parent = row }.AddClass( header ? "explorer-cell explorer-header-cell" : "explorer-cell" );
+		AddCell( row, text, "explorer-cell", header );
 	}
 
 	private static string FormatSize( long bytes )

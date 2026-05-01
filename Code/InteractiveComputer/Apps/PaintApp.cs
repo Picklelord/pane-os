@@ -156,9 +156,6 @@ public sealed class PaintCanvas : Panel
 
 	private Vector2 GetCanvasMousePosition( MousePanelEvent e )
 	{
-		var screenPosition = e.Target is not null
-			? e.Target.PanelPositionToScreenPosition( e.LocalPosition )
-			: e.LocalPosition;
-		return ScreenPositionToPanelPosition( screenPosition );
+		return MousePosition;
 	}
 }

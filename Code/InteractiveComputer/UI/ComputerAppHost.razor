@@ -19,6 +19,8 @@
 			var hash = 17;
 			hash = hash * 31 + (Instance?.State.InstanceId?.GetHashCode() ?? 0);
 			hash = hash * 31 + (Instance?.State.Data.Count ?? 0);
+			hash = hash * 31 + (Instance?.Session?.GetHashCode() ?? 0);
+			hash = hash * 31 + (mirrorSession?.GetHashCode() ?? 0);
 			return hash;
 		}
 	}
@@ -30,7 +32,7 @@
 			base.OnAfterTreeRender( firstTime );
 			AddClass( "app-host" );
 
-			if ( Instance?.Session.Content is null || Instance.State is null )
+			if ( Instance?.State is null )
 				return;
 
 			var content = ResolveMountedContent();
@@ -92,7 +94,7 @@
 
 	private Panel ResolveMountedContent()
 	{
-		if ( Instance is null )
+		if ( Instance?.Session.Content is null )
 			return new Panel();
 
 		var content = Instance.Session.Content;

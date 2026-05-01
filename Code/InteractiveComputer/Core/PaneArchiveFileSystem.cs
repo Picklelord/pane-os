@@ -92,29 +92,33 @@ public static class PaneArchiveFileSystem
 			.ToList();
 	}
 
-	public static void CreateFolder( string archivePath, IReadOnlyList<string> parentPath, string folderName )
+	public static string CreateFolder( string archivePath, IReadOnlyList<string> parentPath, string folderName )
 	{
 		if ( string.IsNullOrWhiteSpace( folderName ) )
-			return;
+			return "";
 
 		var entries = ReadEntries( archivePath );
-		EnsureDirectory( entries, parentPath.Concat( new[] { folderName.Trim() } ).ToArray() );
+		var resolvedName = ResolveUniqueChildName( entries, parentPath, folderName.Trim() );
+		EnsureDirectory( entries, parentPath.Concat( new[] { resolvedName } ).ToArray() );
 		WriteEntries( archivePath, entries );
+		return resolvedName;
 	}
 
-	public static void CreateFile( string archivePath, IReadOnlyList<string> parentPath, string fileName, string extension, string? content = null )
+	public static string CreateFile( string archivePath, IReadOnlyList<string> parentPath, string fileName, string extension, string? content = null )
 	{
 		if ( string.IsNullOrWhiteSpace( fileName ) )
-			return;
+			return "";
 
 		var safeExtension = extension?.Trim().TrimStart( '.' ) ?? "";
-		var fullName = string.IsNullOrWhiteSpace( safeExtension )
+		var requestedName = string.IsNullOrWhiteSpace( safeExtension )
 			? fileName.Trim()
 			: $"{fileName.Trim()}.{safeExtension}";
 
 		var entries = ReadEntries( archivePath );
+		var fullName = ResolveUniqueChildName( entries, parentPath, requestedName );
 		EnsureFile( entries, Encoding.UTF8.GetBytes( content ?? "" ), parentPath.Concat( new[] { fullName } ).ToArray() );
 		WriteEntries( archivePath, entries );
+		return fullName;
 	}
 
 	public static string ReadTextFile( string archivePath, IReadOnlyList<string> filePath )
@@ -134,14 +138,17 @@ public static class PaneArchiveFileSystem
 		WriteEntries( archivePath, entries );
 	}
 
-	public static void Rename( string archivePath, IReadOnlyList<string> targetPath, string newName )
+	public static string Rename( string archivePath, IReadOnlyList<string> targetPath, string newName )
 	{
 		if ( targetPath.Count == 0 || string.IsNullOrWhiteSpace( newName ) )
-			return;
+			return targetPath.LastOrDefault() ?? "";
 
 		var entries = ReadEntries( archivePath );
 		var sourcePrefix = targetPath.ToArray();
-		var destinationPrefix = targetPath.Take( targetPath.Count - 1 ).Append( newName.Trim() ).ToArray();
+		var requestedName = NormalizeRenamedItemName( targetPath.Last(), newName.Trim() );
+		var parentPath = targetPath.Take( targetPath.Count - 1 ).ToArray();
+		var resolvedName = ResolveUniqueChildName( entries, parentPath, requestedName, sourcePrefix );
+		var destinationPrefix = parentPath.Append( resolvedName ).ToArray();
 
 		foreach ( var entry in entries.Where( x => IsUnderPath( x.Segments, sourcePrefix ) ) )
 		{
@@ -149,6 +156,7 @@ public static class PaneArchiveFileSystem
 		}
 
 		WriteEntries( archivePath, entries );
+		return resolvedName;
 	}
 
 	public static void Move( string archivePath, IReadOnlyList<string> sourcePath, IReadOnlyList<string> destinationPath )
@@ -389,7 +397,7 @@ public static class PaneArchiveFileSystem
 		}
 	}
 
-	private static string ResolveUniqueChildName( List<ArchiveEntryModel> entries, IReadOnlyList<string> parentPath, string desiredName )
+	private static string ResolveUniqueChildName( List<ArchiveEntryModel> entries, IReadOnlyList<string> parentPath, string desiredName, IReadOnlyList<string>? sourcePath = null )
 	{
 		var name = desiredName;
 		var stem = Path.GetFileNameWithoutExtension( desiredName );
@@ -397,6 +405,7 @@ public static class PaneArchiveFileSystem
 		var suffix = 2;
 		while ( entries.Any( x => x.Segments.Count >= parentPath.Count + 1 &&
 			IsUnderPath( x.Segments, parentPath ) &&
+			(sourcePath is null || !IsUnderPath( x.Segments, sourcePath )) &&
 			x.Segments[parentPath.Count].Equals( name, StringComparison.OrdinalIgnoreCase ) ) )
 		{
 			name = string.IsNullOrWhiteSpace( extension )
@@ -411,6 +420,17 @@ public static class PaneArchiveFileSystem
 	{
 		return entries.Any( x => x.IsDirectory && PathEquals( x.Segments, path ) ) &&
 			!entries.Any( x => x.Segments.Count > path.Count && IsUnderPath( x.Segments, path ) );
+	}
+
+	private static string NormalizeRenamedItemName( string existingName, string requestedName )
+	{
+		if ( string.IsNullOrWhiteSpace( requestedName ) )
+			return existingName;
+
+		if ( string.IsNullOrWhiteSpace( Path.GetExtension( existingName ) ) || !string.IsNullOrWhiteSpace( Path.GetExtension( requestedName ) ) )
+			return requestedName;
+
+		return $"{requestedName}{Path.GetExtension( existingName )}";
 	}
 
 	private static bool IsUnderPath( IReadOnlyList<string> path, IReadOnlyList<string> parentPath )

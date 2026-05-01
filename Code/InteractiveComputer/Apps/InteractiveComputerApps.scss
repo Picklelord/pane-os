@@ -50,26 +50,39 @@
 .computer-root.dark-mode .ridge-toolbar,
 .computer-root.dark-mode .task-tabs,
 .computer-root.dark-mode .explorer-toolbar,
-.computer-root.dark-mode .about-credits-title {
+.computer-root.dark-mode .about-credits-title,
+.computer-root.dark-mode .explorer-path,
+.computer-root.dark-mode .ridge-status,
+.computer-root.dark-mode .message-box-title-bar,
+.computer-root.dark-mode .file-dialog-toolbar {
 	background: #1d2a3d;
 	border-color: #314159;
 	color: #d9e2f0;
 }
 
 .computer-root.dark-mode .settings-button,
+.computer-root.dark-mode .notepad-toolbar-button,
+.computer-root.dark-mode .paint-clear,
+.computer-root.dark-mode .paint-color-button,
 .computer-root.dark-mode .explorer-button,
 .computer-root.dark-mode .explorer-context-button,
+.computer-root.dark-mode .task-tab-button,
 .computer-root.dark-mode .task-sort-header,
 .computer-root.dark-mode .task-kill-button,
 .computer-root.dark-mode .ridge-button,
-.computer-root.dark-mode .media-player-button {
+.computer-root.dark-mode .media-player-button,
+.computer-root.dark-mode .poodle-button,
+.computer-root.dark-mode .desktop-context-menu button,
+.computer-root.dark-mode .message-box-actions button,
+.computer-root.dark-mode .file-dialog-toolbar button {
 	background: #24344b;
 	border-color: #50637f;
 	color: #ecf3ff;
 }
 
 .computer-root.dark-mode .task-table-header,
-.computer-root.dark-mode .explorer-header {
+.computer-root.dark-mode .explorer-header,
+.computer-root.dark-mode .storage-drive-header {
 	background: #223046;
 	color: #cfdcf0;
 }
@@ -77,8 +90,61 @@
 .computer-root.dark-mode .task-table-row,
 .computer-root.dark-mode .about-row,
 .computer-root.dark-mode .settings-row,
-.computer-root.dark-mode .explorer-row {
+.computer-root.dark-mode .explorer-row,
+.computer-root.dark-mode .file-dialog-row {
 	border-color: #2a3648;
+}
+
+.computer-root.dark-mode .about-value,
+.computer-root.dark-mode .settings-section-title,
+.computer-root.dark-mode .settings-app-title,
+.computer-root.dark-mode .paint-size-label,
+.computer-root.dark-mode .task-storage-note,
+.computer-root.dark-mode .task-history-title,
+.computer-root.dark-mode .perf-title,
+.computer-root.dark-mode .storage-drive-title,
+.computer-root.dark-mode .storage-drive-subtitle,
+.computer-root.dark-mode .explorer-header-cell,
+.computer-root.dark-mode .explorer-path,
+.computer-root.dark-mode .ridge-message-title,
+.computer-root.dark-mode .poodle-result-title,
+.computer-root.dark-mode .poodle-result-url {
+	color: #cfe0ff;
+}
+
+.computer-root.dark-mode .notepad-text,
+.computer-root.dark-mode .ridge-address,
+.computer-root.dark-mode .poodle-input,
+.computer-root.dark-mode .message-box-input,
+.computer-root.dark-mode .file-dialog-list,
+.computer-root.dark-mode .explorer-list,
+.computer-root.dark-mode .task-tab-content {
+	background: #0f1620;
+	color: #edf4ff;
+	border-color: #3d4b63;
+}
+
+.computer-root.dark-mode .about-credit-link,
+.computer-root.dark-mode .poodle-result,
+.computer-root.dark-mode .ridge-allow-list,
+.computer-root.dark-mode .file-dialog-name-row,
+.computer-root.dark-mode .desktop-context-menu,
+.computer-root.dark-mode .message-box-window,
+.computer-root.dark-mode .file-dialog-window {
+	background: #172130;
+	color: #edf4ff;
+	border-color: #314159;
+}
+
+.computer-root.dark-mode .message-box-body,
+.computer-root.dark-mode .message-box-copy,
+.computer-root.dark-mode .file-dialog-toolbar label,
+.computer-root.dark-mode .file-dialog-name-row label,
+.computer-root.dark-mode .poodle-tagline,
+.computer-root.dark-mode .poodle-empty,
+.computer-root.dark-mode .poodle-result-body,
+.computer-root.dark-mode .ridge-message-body {
+	color: #d9e2f0;
 }
 
 .app-document label,
@@ -144,7 +210,6 @@
 	background-position: center;
 	background-repeat: no-repeat;
 	background-size: contain;
-	transform: rotate(-90deg);
 }
 
 .about-row {
@@ -185,14 +250,20 @@
 }
 
 .about-credit-link {
-	min-height: 48px;
+	min-height: 32px;
 	padding: 0 10px;
 	justify-content: flex-start;
 	border-top: 1px solid #dce6f6;
 	background-color: #ffffff;
 	color: #245aa1;
 	text-align: left;
-	font-size: 15px;
+	font-size: 13px;
+	font-weight: 400;
+}
+
+.about-credit-link-primary {
+	min-height: 64px;
+	font-size: 18px;
 	font-weight: 700;
 }
 
@@ -209,6 +280,13 @@
 	background: linear-gradient(180deg, #f8fbff, #edf3ff);
 	min-height: 46px;
 	padding: 2px 0;
+}
+
+.settings-app-title {
+	margin-top: 8px;
+	font-size: 13px;
+	font-weight: 700;
+	color: #315f9c;
 }
 
 .settings-row {
@@ -258,6 +336,14 @@
 	border-bottom: 1px solid #aca899;
 }
 
+.notepad-toolbar-button {
+	height: 22px;
+	padding: 0 10px;
+	border: 1px solid #8ea1bf;
+	background: linear-gradient(180deg, #ffffff, #dde6f5);
+	color: #1c3d73;
+}
+
 .notepad-text {
 	width: 100%;
 	height: 100%;
@@ -271,6 +357,7 @@
 	line-height: 18px;
 	color: #111;
 	text-align: left;
+	overflow: scroll;
 }
 
 .notepad-text .content-label {
@@ -279,6 +366,7 @@
 	align-items: flex-start;
 	justify-content: flex-start;
 	text-align: left;
+	overflow: scroll;
 }
 
 .calculator-app {
@@ -964,7 +1052,7 @@
 
 .explorer-button {
 	height: 25px;
-	min-width: 52px;
+	min-width: 48px;
 	padding: 0 7px;
 	align-items: center;
 	justify-content: center;
@@ -980,11 +1068,11 @@
 }
 
 .explorer-button-wide {
-	min-width: 72px;
+	min-width: 68px;
 }
 
 .explorer-button-xl {
-	min-width: 108px;
+	min-width: 96px;
 }
 
 .explorer-path {
@@ -1035,10 +1123,26 @@
 	flex-grow: 1;
 	padding: 0 8px;
 	align-items: center;
+	justify-content: flex-start;
+	text-align: left;
+	min-width: 0;
 }
 
 .explorer-name-cell {
+	flex-grow: 2.8;
 	gap: 8px;
+}
+
+.explorer-name-column {
+	flex-grow: 2.8;
+}
+
+.explorer-type-column {
+	flex-grow: 1.4;
+}
+
+.explorer-size-column {
+	flex-grow: 1;
 }
 
 .explorer-item-icon {

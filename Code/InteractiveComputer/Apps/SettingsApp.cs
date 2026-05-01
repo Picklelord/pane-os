@@ -56,7 +56,7 @@ public sealed class SettingsPanel : ComputerWarmupPanel
 		BuildWallpaperSection();
 		BuildBrowserSection();
 		BuildSystemSection();
-		BuildAppsSection();
+		BuildAppSettingsSection();
 	}
 
 	private void BuildHardwareSection()
@@ -86,22 +86,46 @@ public sealed class SettingsPanel : ComputerWarmupPanel
 			("Custom...", PromptForCustomHome) );
 	}
 
-	private void BuildAppsSection()
+	private void BuildAppSettingsSection()
 	{
-		var section = CreateSection( "Apps" );
-		foreach ( var app in ComputerAppRegistry.Apps.Where( x => !x.IsBackgroundProcess ).OrderBy( x => x.SortOrder ).ThenBy( x => x.Title, StringComparer.OrdinalIgnoreCase ) )
+		new Label( "App Settings" ) { Parent = this }.AddClass( "settings-section-title" );
+		foreach ( var app in ComputerAppRegistry.Apps
+			.Where( x => x.ShowInControlPanel && !x.IsBackgroundProcess )
+			.OrderBy( x => x.SortOrder )
+			.ThenBy( x => x.Title, StringComparer.OrdinalIgnoreCase ) )
 		{
+			new Label( app.Title ) { Parent = this }.AddClass( "settings-app-title" );
+			var section = new Panel { Parent = this };
+			section.AddClass( "settings-section" );
+
 			var installed = context.Runtime.IsAppInstalled( app.Id );
-			CreateSettingRow(
-				section,
-				$"{app.Title} {(installed ? "(Installed)" : "(Not installed)")}",
-				(installed ? "Uninstall" : "Install", () =>
-				{
-					if ( installed )
-						context.Runtime.UninstallApp( app.Id );
-					else
-						context.Runtime.InstallApp( app.Id );
-				}) );
+			if ( app.HasWindow && app.AllowControlPanelWindowSizing )
+			{
+				var width = LoadWindowSetting( app.Id, "window_width", app.DefaultWindowWidth ?? 560 );
+				var height = LoadWindowSetting( app.Id, "window_height", app.DefaultWindowHeight ?? 380 );
+				CreateSettingRow(
+					section,
+					$"Default window size: {width} x {height}",
+					("-W", () => AdjustWindowSetting( app, "window_width", width, -20, 260, 1600 )),
+					("+W", () => AdjustWindowSetting( app, "window_width", width, 20, 260, 1600 )),
+					("-H", () => AdjustWindowSetting( app, "window_height", height, -20, 180, 1200 )),
+					("+H", () => AdjustWindowSetting( app, "window_height", height, 20, 180, 1200 )),
+					("Reset", () => ResetWindowSettings( app )) );
+			}
+
+			if ( app.CanUninstallFromControlPanel )
+			{
+				CreateSettingRow(
+					section,
+					$"Installed: {(installed ? "Yes" : "No")}",
+					(installed ? "Uninstall" : "Install", () =>
+					{
+						if ( installed )
+							context.Runtime.UninstallApp( app.Id );
+						else
+							context.Runtime.InstallApp( app.Id );
+					}) );
+			}
 		}
 	}
 
@@ -161,6 +185,27 @@ public sealed class SettingsPanel : ComputerWarmupPanel
 	{
 		context.Runtime.State.DarkModeEnabled = !context.Runtime.State.DarkModeEnabled;
 		context.Runtime.MarkChanged();
+	}
+
+	private int LoadWindowSetting( string appId, string key, int fallback )
+	{
+		var value = context.Runtime.LoadAppSetting( appId, key );
+		return int.TryParse( value, out var parsed ) ? parsed : fallback;
+	}
+
+	private void AdjustWindowSetting( ComputerAppDescriptor app, string key, int currentValue, int delta, int min, int max )
+	{
+		var nextValue = Math.Clamp( currentValue + delta, min, max );
+		context.Runtime.SaveAppSetting( app.Id, key, nextValue.ToString() );
+	}
+
+	private void ResetWindowSettings( ComputerAppDescriptor app )
+	{
+		if ( app.DefaultWindowWidth.HasValue )
+			context.Runtime.SaveAppSetting( app.Id, "window_width", app.DefaultWindowWidth.Value.ToString() );
+
+		if ( app.DefaultWindowHeight.HasValue )
+			context.Runtime.SaveAppSetting( app.Id, "window_height", app.DefaultWindowHeight.Value.ToString() );
 	}
 
 	private void PromptForCustomHome()

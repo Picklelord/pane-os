@@ -23,10 +23,13 @@ public sealed class ComputerAppDescriptor
 	public bool ShowOnDesktop { get; init; } = true;
 	public bool ShowInStartMenu { get; init; } = true;
 	public bool ShowInTaskbar { get; init; } = true;
+	public bool ShowInControlPanel { get; init; } = true;
 	public bool HasWindow { get; init; } = true;
 	public bool RunOnStartup { get; init; }
 	public bool IsBackgroundProcess { get; init; }
 	public bool SingleInstance { get; init; } = true;
+	public bool CanUninstallFromControlPanel { get; init; } = true;
+	public bool AllowControlPanelWindowSizing { get; init; } = true;
 	public IReadOnlyList<string> AssociatedFileExtensions { get; init; } = Array.Empty<string>();
 	public int DefaultWindowOffsetX { get; init; } = 70;
 	public int DefaultWindowOffsetY { get; init; } = 54;
