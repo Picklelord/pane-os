@@ -2,6 +2,8 @@
 
 PaneOS Interactive Computer is an s&box library package that provides an XP-styled in-world desktop. It includes a persistent computer runtime, app launcher, movable windows, screensaver, notepad, task manager, about panel, and locked-down Ridge browser shell.
 
+Try it out in the  [Test Project here.](https://github.com/Picklelord/pane-os-test-project/)
+
 This repository is structured as a library package:
 
 ```text
