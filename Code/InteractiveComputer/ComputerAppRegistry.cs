@@ -57,6 +57,7 @@ public static class ComputerAppRegistry
 			ExpectedAvgRamUsageMb = 72f,
 			ExpectedAvgGpuCoreUsagePercent = 0.25f,
 			ExpectedAvgGpuVramUsagePercent = 0.25f,
+			AssociatedFileExtensions = new[] { ".txt", ".log", ".md", ".json" },
 			SingleInstance = false,
 			Factory = () => new NotepadApp()
 		},
@@ -76,6 +77,7 @@ public static class ComputerAppRegistry
 			ExpectedAvgGpuVramUsagePercent = 5f,
 			ChanceToStopRespondingPerMinute = 0.006f,
 			ChanceOfMemoryLeakPerMinute = 0.01f,
+			AssociatedFileExtensions = new[] { ".url", ".html", ".htm" },
 			SingleInstance = false,
 			Factory = () => new RidgeBrowserApp()
 		},
@@ -143,6 +145,7 @@ public static class ComputerAppRegistry
 			ExpectedAvgRamUsageMb = 104f,
 			ExpectedAvgGpuCoreUsagePercent = 2f,
 			ExpectedAvgGpuVramUsagePercent = 1.5f,
+			AssociatedFileExtensions = new[] { ".png", ".jpg", ".jpeg", ".bmp", ".gif" },
 			SingleInstance = false,
 			Factory = () => new PaintApp()
 		},
@@ -160,6 +163,7 @@ public static class ComputerAppRegistry
 			ExpectedAvgRamUsageMb = 126f,
 			ExpectedAvgGpuCoreUsagePercent = 2.5f,
 			ExpectedAvgGpuVramUsagePercent = 2f,
+			AssociatedFileExtensions = new[] { ".mp3", ".wav", ".ogg", ".mp4", ".webm", ".avi" },
 			SingleInstance = false,
 			Factory = () => new MediaPlayerApp()
 		},

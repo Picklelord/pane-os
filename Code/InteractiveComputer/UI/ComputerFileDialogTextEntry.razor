@@ -37,7 +37,10 @@
 			return;
 
 		if ( FileDialog.CurrentFileName != Text )
+		{
 			FileDialog.CurrentFileName = Text;
+			OnTextChanged?.Invoke( Text );
+		}
 	}
 
 	private void HandleTextEdited( string value )

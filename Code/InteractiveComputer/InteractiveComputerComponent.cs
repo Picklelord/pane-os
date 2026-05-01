@@ -79,6 +79,7 @@ public sealed class InteractiveComputerComponent : Component
 
 		Runtime.DisableScreenSaverWhileInteracting();
 		Runtime.Wake();
+		Runtime.RefreshWindowAppSessions();
 		Runtime.MarkChanged();
 	}
 

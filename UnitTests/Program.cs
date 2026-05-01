@@ -28,7 +28,9 @@ var tests = new (string Name, Action Body)[]
 	("Archive text files round-trip through My Documents", ArchiveTextFilesRoundTrip),
 	("Archive rename updates file names in place", ArchiveRenameMovesEntries),
 	("Archive delete can move items to recycle bin and restore them", ArchiveRecycleBinRoundTrip),
+	("Archive restore reuses recreated empty parent folders", ArchiveRestoreReusesEmptyDefaultFolder),
 	("File associations open text files in Notepad", FileAssociationsOpenTextFiles),
+	("File associations use app-declared extensions", FileAssociationsUseAppDeclaredExtensions),
 	("File associations open url files in Ridge", FileAssociationsOpenUrlFiles),
 	("Corrupted url shortcuts are rejected with a specific dialog", CorruptedUrlShortcutsAreRejected),
 	("File associations launch executables by resolved name", FileAssociationsLaunchExecutables),
@@ -381,6 +383,31 @@ static void ArchiveRecycleBinRoundTrip()
 	}
 }
 
+static void ArchiveRestoreReusesEmptyDefaultFolder()
+{
+	var tempPath = Path.Combine( Path.GetTempPath(), $"paneos-trash-empty-{Guid.NewGuid():N}.datc" );
+	try
+	{
+		PaneArchiveFileSystem.EnsureArchive( tempPath, "Alice", Array.Empty<ComputerAppDescriptor>() );
+		var documentsPath = new[] { "C:", "Users", "Alice", "My Documents" };
+
+		var recycledPath = PaneArchiveFileSystem.MoveToRecycleBin( tempPath, documentsPath );
+		False( PaneArchiveFileSystem.Exists( tempPath, documentsPath ) );
+
+		PaneArchiveFileSystem.EnsureArchive( tempPath, "Alice", Array.Empty<ComputerAppDescriptor>() );
+		True( PaneArchiveFileSystem.Exists( tempPath, documentsPath ) );
+
+		var restoredPath = PaneArchiveFileSystem.RestoreFromRecycleBin( tempPath, recycledPath.TrimStart( '/' ).Split( '/' ) );
+		Equal( "/C:/Users/Alice/My Documents", restoredPath );
+		False( PaneArchiveFileSystem.Exists( tempPath, new[] { "C:", "Users", "Alice", "My Documents (2)" } ) );
+	}
+	finally
+	{
+		if ( File.Exists( tempPath ) )
+			File.Delete( tempPath );
+	}
+}
+
 static void FileAssociationsOpenTextFiles()
 {
 	var target = ComputerFileAssociationPolicy.ResolveLaunchTarget(
@@ -391,6 +418,29 @@ static void FileAssociationsOpenTextFiles()
 
 	Equal( "system.notepad", target?.AppId );
 	Equal( "/C:/Users/Alice/My Documents/Notes.txt", target?.InitialData["file_path"] );
+}
+
+static void FileAssociationsUseAppDeclaredExtensions()
+{
+	var apps = new[]
+	{
+		new ComputerAppDescriptor
+		{
+			Id = "system.paint",
+			Title = "Paint",
+			AssociatedFileExtensions = new[] { ".png" },
+			Factory = () => new StubComputerApp()
+		}
+	};
+
+	var target = ComputerFileAssociationPolicy.ResolveLaunchTarget(
+		"/C:/Users/Alice/My Documents/Sketch.png",
+		"Sketch.png",
+		"",
+		apps );
+
+	Equal( "system.paint", target?.AppId );
+	Equal( "/C:/Users/Alice/My Documents/Sketch.png", target?.InitialData["file_path"] );
 }
 
 static void FileAssociationsOpenUrlFiles()

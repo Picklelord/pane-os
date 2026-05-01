@@ -838,6 +838,18 @@
 	font-size: 11px;
 }
 
+.explorer-button-small {
+	min-width: 30px;
+}
+
+.explorer-button-wide {
+	min-width: 72px;
+}
+
+.explorer-button-xl {
+	min-width: 108px;
+}
+
 .explorer-path {
 	height: 28px;
 	align-items: center;
@@ -904,6 +916,19 @@
 	color: #083b7a;
 	font-size: 12px;
 	font-weight: 700;
+	flex-shrink: 0;
+}
+
+.explorer-item-icon.has-texture {
+	border: 0;
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+.explorer-parent-spacer {
+	width: 24px;
+	height: 24px;
 	flex-shrink: 0;
 }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace PaneOS.InteractiveComputer;
@@ -26,6 +27,7 @@ public sealed class ComputerAppDescriptor
 	public bool RunOnStartup { get; init; }
 	public bool IsBackgroundProcess { get; init; }
 	public bool SingleInstance { get; init; } = true;
+	public IReadOnlyList<string> AssociatedFileExtensions { get; init; } = Array.Empty<string>();
 	public int DefaultWindowOffsetX { get; init; } = 70;
 	public int DefaultWindowOffsetY { get; init; } = 54;
 	public int? DefaultWindowWidth { get; init; }

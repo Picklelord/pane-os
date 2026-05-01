@@ -38,7 +38,10 @@
 			return;
 
 		if ( MessageBox.CurrentText != Text )
+		{
 			MessageBox.CurrentText = Text;
+			OnTextChanged?.Invoke( Text );
+		}
 	}
 
 	private void HandleTextEdited( string value )

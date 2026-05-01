@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using PaneOS.InteractiveComputer.Core;
+using Sandbox;
 using Sandbox.UI;
 
 namespace PaneOS.InteractiveComputer.Apps;
@@ -36,6 +37,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 	private readonly Stack<string[]> backHistory = new();
 	private readonly Stack<string[]> forwardHistory = new();
 	private readonly Dictionary<string, Panel> rowByPath = new( StringComparer.OrdinalIgnoreCase );
+	private static readonly IReadOnlyList<string> RecycleBinPath = new[] { "C:", "Recycle Bin" };
 
 	public PaneExplorerPanel( ComputerAppContext context )
 	{
@@ -65,15 +67,17 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		var toolbar = new Panel { Parent = this };
 		toolbar.AddClass( "explorer-toolbar" );
 
-		CreateToolbarButton( toolbar, "Back", NavigateBack );
-		CreateToolbarButton( toolbar, "Fwd", NavigateForward );
-		CreateToolbarButton( toolbar, "Up", NavigateUp );
-		CreateToolbarButton( toolbar, "PC", () => NavigateTo( Array.Empty<string>() ) );
-		CreateToolbarButton( toolbar, "Docs", () => NavigateTo( documentsPath ) );
+		CreateToolbarButton( toolbar, "<", NavigateBack, "explorer-button-small" );
+		CreateToolbarButton( toolbar, ">", NavigateForward, "explorer-button-small" );
+		if ( currentPath.Count > 0 )
+			CreateToolbarButton( toolbar, "My PC", () => NavigateTo( Array.Empty<string>() ), "explorer-button-wide" );
+		if ( !currentPath.SequenceEqual( documentsPath ) )
+			CreateToolbarButton( toolbar, "My Documents", () => NavigateTo( documentsPath ), "explorer-button-xl" );
+		if ( !IsRecycleBinPath( currentPath ) )
+			CreateToolbarButton( toolbar, "Recycle Bin", () => NavigateTo( RecycleBinPath ), "explorer-button-xl" );
 		CreateToolbarButton( toolbar, "Rename", PromptRenameSelected );
-		CreateToolbarButton( toolbar, "New", PromptForCreate );
-		CreateToolbarButton( toolbar, "Restore", RestoreSelected );
-		CreateToolbarButton( toolbar, "Delete", DeleteSelected );
+		if ( IsRecycleBinPath( currentPath ) )
+			CreateToolbarButton( toolbar, "Restore", RestoreSelected );
 
 		pathLabel = new Label { Parent = this };
 		pathLabel.AddClass( "explorer-path" );
@@ -87,7 +91,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		AddCell( header, "Type", true );
 		AddCell( header, "Size", true );
 
-		listHost = new Panel { Parent = table };
+		listHost = new ExplorerListPanel( ShowFolderContextMenu, HideContextMenu ) { Parent = table };
 		listHost.AddClass( "explorer-list" );
 
 		contextMenuHost = new Panel { Parent = this };
@@ -96,10 +100,20 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		RefreshListing();
 	}
 
-	private void CreateToolbarButton( Panel parent, string label, Action onClick )
+	protected override void OnMouseDown( MousePanelEvent e )
+	{
+		base.OnMouseDown( e );
+
+		if ( e.Button == "mouseleft" )
+			HideContextMenu();
+	}
+
+	private void CreateToolbarButton( Panel parent, string label, Action onClick, string extraClass = "" )
 	{
 		var button = new Button( label ) { Parent = parent };
 		button.AddClass( "explorer-button" );
+		if ( !string.IsNullOrWhiteSpace( extraClass ) )
+			button.AddClass( extraClass );
 		button.AddEventListener( "onclick", onClick );
 	}
 
@@ -138,6 +152,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 				}
 
 				selectedPath = BuildChildVirtualPath( currentPath, createdName );
+				context.Runtime.PushNotification( "Created", $"{createdName} was created.", "+" );
 				context.Runtime.RefreshTransientUi();
 				RefreshListing();
 			} );
@@ -173,6 +188,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 
 				PaneArchiveFileSystem.Rename( archivePath, ParsePath( targetPath ), newName );
 				selectedPath = BuildChildVirtualPath( currentPath, newName );
+				context.Runtime.PushNotification( "Renamed", $"{currentName} is now {newName}.", "R" );
 				context.Runtime.RefreshTransientUi();
 				RefreshListing();
 			} );
@@ -236,8 +252,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 
 			var nameCell = new Panel { Parent = row };
 			nameCell.AddClass( "explorer-cell explorer-name-cell" );
-			var icon = new Label( item.IsDirectory ? "FD" : "FI" ) { Parent = nameCell };
-			icon.AddClass( "explorer-item-icon" );
+			CreateItemIcon( nameCell, item );
 			new Label( item.Name ) { Parent = nameCell }.AddClass( "explorer-item-name" );
 			AddCell( row, item.IsDirectory ? "Folder" : item.Extension.TrimStart( '.' ).ToUpperInvariant() + " File" );
 			AddCell( row, item.IsDirectory ? "-" : FormatSize( item.SizeBytes ) );
@@ -262,8 +277,7 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 
 		var nameCell = new Panel { Parent = row };
 		nameCell.AddClass( "explorer-cell explorer-name-cell" );
-		var icon = new Label( "UP" ) { Parent = nameCell };
-		icon.AddClass( "explorer-item-icon" );
+		new Panel { Parent = nameCell }.AddClass( "explorer-parent-spacer" );
 		new Label( ".." ) { Parent = nameCell }.AddClass( "explorer-item-name" );
 		AddCell( row, "Parent" );
 		AddCell( row, "-" );
@@ -334,9 +348,21 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 				ActivateItem( item );
 		} );
 		CreateContextMenuButton( menu, "Rename", PromptRenameSelected );
+		CreateContextMenuButton( menu, "New File/Folder", PromptForCreate );
 		if ( IsRecycleBinPath( targetPath ) )
 			CreateContextMenuButton( menu, "Restore", RestoreSelected );
 		CreateContextMenuButton( menu, "Delete", DeleteSelected );
+	}
+
+	private void ShowFolderContextMenu()
+	{
+		selectedPath = null;
+		contextMenuPath = null;
+		contextMenuHost.DeleteChildren( true );
+
+		var menu = new Panel { Parent = contextMenuHost };
+		menu.AddClass( "explorer-context-menu" );
+		CreateContextMenuButton( menu, "New File/Folder", PromptForCreate );
 	}
 
 	private void HideContextMenu()
@@ -377,6 +403,74 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 	private static bool IsRecycleBinPath( string virtualPath )
 	{
 		return virtualPath.StartsWith( "/C:/Recycle Bin/", StringComparison.OrdinalIgnoreCase );
+	}
+
+	private static bool IsRecycleBinPath( IReadOnlyList<string> path )
+	{
+		return path.Count >= RecycleBinPath.Count && path.Take( RecycleBinPath.Count ).SequenceEqual( RecycleBinPath );
+	}
+
+	private void CreateItemIcon( Panel parent, PaneArchiveItem item )
+	{
+		var icon = new Label( ResolveFallbackIconText( item ) ) { Parent = parent };
+		icon.AddClass( "explorer-item-icon" );
+
+		var texturePath = ResolveTexturePath( item );
+		if ( string.IsNullOrWhiteSpace( texturePath ) )
+			return;
+
+		icon.Text = "";
+		icon.AddClass( "has-texture" );
+		icon.Style.SetBackgroundImage( texturePath );
+	}
+
+	private string ResolveTexturePath( PaneArchiveItem item )
+	{
+		if ( item.IsDirectory )
+			return TryResolveTexturePath( "folder" );
+
+		if ( item.Extension.Equals( ".exe", StringComparison.OrdinalIgnoreCase ) )
+		{
+			var app = context.Runtime.Apps.FirstOrDefault( x => x.ResolvedExecutableName.Equals( item.Name, StringComparison.OrdinalIgnoreCase ) );
+			if ( app is not null )
+			{
+				var appTextureName = Path.GetFileNameWithoutExtension( app.ResolvedExecutableName ).ToLowerInvariant();
+				var appTexture = TryResolveTexturePath( appTextureName );
+				if ( !string.IsNullOrWhiteSpace( appTexture ) )
+					return appTexture;
+			}
+		}
+
+		var extensionTextureName = item.Extension.TrimStart( '.' ).ToLowerInvariant();
+		return TryResolveTexturePath( extensionTextureName );
+	}
+
+	private static string TryResolveTexturePath( string textureName )
+	{
+		if ( string.IsNullOrWhiteSpace( textureName ) )
+			return "";
+
+		var path = $"textures/{textureName}.png";
+		try
+		{
+			return FileSystem.Mounted.FileExists( path ) ? path : "";
+		}
+		catch ( Exception )
+		{
+			return "";
+		}
+	}
+
+	private static string ResolveFallbackIconText( PaneArchiveItem item )
+	{
+		if ( item.IsDirectory )
+			return "FD";
+
+		var extension = item.Extension.TrimStart( '.' ).ToUpperInvariant();
+		if ( !string.IsNullOrWhiteSpace( extension ) )
+			return extension.Length <= 3 ? extension : extension[..3];
+
+		return "FI";
 	}
 
 	private static void AddCell( Panel row, string text, bool header = false )
@@ -456,5 +550,29 @@ public sealed class ExplorerItemRow : Panel
 	{
 		base.OnDragStart( e );
 		ComputerUiDragState.BeginDrag( virtualPath );
+	}
+}
+
+public sealed class ExplorerListPanel : Panel
+{
+	private readonly Action openBackgroundContextMenu;
+	private readonly Action hideContextMenu;
+
+	public ExplorerListPanel( Action openBackgroundContextMenu, Action hideContextMenu )
+	{
+		this.openBackgroundContextMenu = openBackgroundContextMenu;
+		this.hideContextMenu = hideContextMenu;
+	}
+
+	protected override void OnMouseDown( MousePanelEvent e )
+	{
+		base.OnMouseDown( e );
+
+		if ( e.Button == "mouseright" )
+			openBackgroundContextMenu();
+		else if ( e.Button == "mouseleft" )
+			hideContextMenu();
+
+		e.StopPropagation();
 	}
 }

@@ -29,9 +29,14 @@ public static class ComputerFileAssociationPolicy
 	public static ComputerFileOpenResult ResolveOpenResult( string virtualPath, string fileName, string fileContent, IReadOnlyList<ComputerAppDescriptor> apps )
 	{
 		var extension = Path.GetExtension( fileName ).ToLowerInvariant();
-		return extension switch
-		{
-			".txt" => new ComputerFileOpenResult
+		if ( extension == ".url" )
+			return ResolveUrlOpenResult( virtualPath, fileContent );
+
+		if ( extension == ".exe" )
+			return ResolveExecutableOpenResult( fileName, apps );
+
+		if ( extension == ".txt" )
+			return new ComputerFileOpenResult
 			{
 				LaunchTarget = new ComputerFileLaunchTarget
 				{
@@ -41,14 +46,28 @@ public static class ComputerFileAssociationPolicy
 						["file_path"] = virtualPath
 					}
 				}
-			},
-			".url" => ResolveUrlOpenResult( virtualPath, fileContent ),
-			".exe" => ResolveExecutableOpenResult( fileName, apps ),
-			_ => new ComputerFileOpenResult
+			};
+
+		var associatedApp = apps.FirstOrDefault( x => x.AssociatedFileExtensions.Any( y => NormalizeExtension( y ) == extension ) );
+		if ( associatedApp is not null )
+		{
+			return new ComputerFileOpenResult
 			{
-				FailureTitle = "Cannot Open File",
-				FailureMessage = $"PaneOS does not know how to open {fileName}."
-			}
+				LaunchTarget = new ComputerFileLaunchTarget
+				{
+					AppId = associatedApp.Id,
+					InitialData = new Dictionary<string, string>
+					{
+						["file_path"] = virtualPath
+					}
+				}
+			};
+		}
+
+		return new ComputerFileOpenResult
+		{
+			FailureTitle = "Cannot Open File",
+			FailureMessage = $"PaneOS does not know how to open {fileName}."
 		};
 	}
 
@@ -127,5 +146,14 @@ public static class ComputerFileAssociationPolicy
 			FailureTitle = "Corrupted Application",
 			FailureMessage = $"{fileName} points to an app that is missing or no longer installed."
 		};
+	}
+
+	private static string NormalizeExtension( string extension )
+	{
+		if ( string.IsNullOrWhiteSpace( extension ) )
+			return "";
+
+		var value = extension.Trim().ToLowerInvariant();
+		return value.StartsWith( ".", StringComparison.Ordinal ) ? value : $".{value}";
 	}
 }

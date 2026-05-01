@@ -219,6 +219,11 @@ public static class PaneArchiveFileSystem
 			originalParentPath = "/C:/Users";
 
 		var parentPath = ParseVirtualPath( originalParentPath );
+		EnsureDirectory( entries, parentPath.ToArray() );
+		var desiredDestination = parentPath.Concat( new[] { recycleName } ).ToArray();
+		if ( IsEmptyDirectory( entries, desiredDestination ) )
+			entries.RemoveAll( x => x.IsDirectory && x.Segments.SequenceEqual( desiredDestination ) );
+
 		var restoredName = ResolveUniqueChildName( entries, parentPath, recycleName );
 		var destinationPath = parentPath.Concat( new[] { restoredName } ).ToArray();
 		MoveEntries( entries, recyclePath.ToArray(), destinationPath );
@@ -403,6 +408,12 @@ public static class PaneArchiveFileSystem
 		}
 
 		return name;
+	}
+
+	private static bool IsEmptyDirectory( List<ArchiveEntryModel> entries, IReadOnlyList<string> path )
+	{
+		return entries.Any( x => x.IsDirectory && x.Segments.SequenceEqual( path ) ) &&
+			!entries.Any( x => x.Segments.Count > path.Count && x.Segments.Take( path.Count ).SequenceEqual( path ) );
 	}
 
 	private static bool IsUnderPath( IReadOnlyList<string> path, IReadOnlyList<string> parentPath )

@@ -332,6 +332,7 @@ public sealed class ComputerRuntime
 			return;
 
 		State.IsSleeping = false;
+		RefreshWindowAppSessions();
 		MarkChanged();
 	}
 
@@ -349,7 +350,14 @@ public sealed class ComputerRuntime
 
 		NotifyUserActivity();
 		State.IsLocked = false;
+		RefreshWindowAppSessions();
 		MarkChanged();
+	}
+
+	public void RefreshWindowAppSessions()
+	{
+		foreach ( var app in OpenApps.Where( x => x.Descriptor.HasWindow && !x.State.IsMinimized ).ToArray() )
+			RefreshRunningAppSession( app );
 	}
 
 	public void Restart()
