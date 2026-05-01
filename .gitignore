@@ -3,6 +3,7 @@ build/
 .nuget/
 Code/**/bin/
 Code/**/obj/
+**/Properties/launchSettings.json
 Editor/**/bin/
 Editor/**/obj/
 UnitTests/**/bin/
