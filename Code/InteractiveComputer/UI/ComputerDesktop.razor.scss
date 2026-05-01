@@ -21,7 +21,7 @@
 	background-size: cover;
 	background-position: center;
 	background-repeat: no-repeat;
-	transform: translate(-50%, -50%) rotate(-90deg);
+	transform: translate(-50%, -50%);
 	transform-origin: center;
 	pointer-events: none;
 }
@@ -581,7 +581,6 @@
 	background-size: contain;
 	background-position: center;
 	background-repeat: no-repeat;
-	transform: rotate(-90deg);
 	transform-origin: center;
 }
 

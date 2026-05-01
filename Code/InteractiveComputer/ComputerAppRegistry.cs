@@ -33,7 +33,7 @@ public static class ComputerAppRegistry
 			Icon = "CP",
 			SortOrder = 5,
 			DefaultWindowWidth = 640,
-			DefaultWindowHeight = 480,
+			DefaultWindowHeight = 560,
 			StorageSpaceUsedGb = 0.09f,
 			ExpectedCoreCountUsageAvg = 0.14f,
 			ExpectedAvgCpuCoreUsagePercent = 8f,

@@ -59,7 +59,7 @@ public sealed class NotepadPanel : ComputerWarmupPanel
 		saveAsButton.AddClass( "notepad-toolbar-button" );
 		saveAsButton.AddEventListener( "onclick", SaveFileAs );
 
-		textEntry = new ComputerInputAwareTextEntry( () => context.Runtime.ShouldBlockInput( context.State.InstanceId ) )
+		textEntry = new ComputerInputAwareTextEntry( ShouldSuppressInput )
 		{
 			Parent = this,
 			Text = currentText ?? "",
@@ -96,6 +96,13 @@ public sealed class NotepadPanel : ComputerWarmupPanel
 			: context.ReadTextFile( currentFilePath );
 		textEntry.CaretPosition = textEntry.TextLength;
 		textEntry.Focus();
+	}
+
+	private bool ShouldSuppressInput()
+	{
+		return context.Runtime.ShouldBlockInput( context.State.InstanceId ) ||
+			context.State.IsMinimized ||
+			context.Runtime.FocusedApp?.State.InstanceId != context.State.InstanceId;
 	}
 
 	private void OpenFile()

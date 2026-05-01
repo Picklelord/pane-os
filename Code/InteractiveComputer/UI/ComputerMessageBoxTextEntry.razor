@@ -1,0 +1,41 @@
+@namespace PaneOS.InteractiveComputer
+@using System
+@using Microsoft.AspNetCore.Components
+@using PaneOS.InteractiveComputer
+@using Sandbox.UI
+@inherits TextEntry
+
+@code
+{
+	[Parameter] public ComputerActiveMessageBox? MessageBox { get; set; }
+	private Guid boundId;
+
+	protected override void OnAfterTreeRender( bool firstTime )
+	{
+		base.OnAfterTreeRender( firstTime );
+		AddClass( "message-box-input" );
+
+		if ( MessageBox is null )
+			return;
+
+		Placeholder = MessageBox.Options.TextInputPlaceholder;
+		if ( boundId != MessageBox.Id )
+		{
+			boundId = MessageBox.Id;
+			Text = MessageBox.CurrentText;
+			CaretPosition = TextLength;
+			Focus();
+		}
+	}
+
+	public override void Tick()
+	{
+		base.Tick();
+
+		if ( MessageBox is null )
+			return;
+
+		if ( MessageBox.CurrentText != Text )
+			MessageBox.CurrentText = Text;
+	}
+}

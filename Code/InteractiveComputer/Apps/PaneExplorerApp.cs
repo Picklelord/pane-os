@@ -66,14 +66,14 @@ public sealed class PaneExplorerPanel : ComputerWarmupPanel
 		toolbar.AddClass( "explorer-toolbar" );
 
 		CreateToolbarButton( toolbar, "Back", NavigateBack );
-		CreateToolbarButton( toolbar, "Forward", NavigateForward );
+		CreateToolbarButton( toolbar, "Fwd", NavigateForward );
 		CreateToolbarButton( toolbar, "Up", NavigateUp );
-		CreateToolbarButton( toolbar, "My PC", () => NavigateTo( Array.Empty<string>() ) );
-		CreateToolbarButton( toolbar, "My Documents", () => NavigateTo( documentsPath ) );
+		CreateToolbarButton( toolbar, "PC", () => NavigateTo( Array.Empty<string>() ) );
+		CreateToolbarButton( toolbar, "Docs", () => NavigateTo( documentsPath ) );
 		CreateToolbarButton( toolbar, "Rename", PromptRenameSelected );
-		CreateToolbarButton( toolbar, "Add Folder", PromptForCreate );
-		CreateToolbarButton( toolbar, "Restore Selected", RestoreSelected );
-		CreateToolbarButton( toolbar, "Delete Selected", DeleteSelected );
+		CreateToolbarButton( toolbar, "New", PromptForCreate );
+		CreateToolbarButton( toolbar, "Restore", RestoreSelected );
+		CreateToolbarButton( toolbar, "Delete", DeleteSelected );
 
 		pathLabel = new Label { Parent = this };
 		pathLabel.AddClass( "explorer-path" );

@@ -70,7 +70,7 @@ public sealed class PaintPanel : ComputerWarmupPanel
 
 	private void SetBrushSize( int nextSize )
 	{
-		brushSize = Math.Clamp( nextSize, 4, 36 );
+		brushSize = Math.Clamp( nextSize, 3, 36 );
 		BuildUi();
 	}
 }
@@ -86,6 +86,9 @@ public sealed class PaintCanvas : Panel
 	protected override void OnMouseDown( MousePanelEvent e )
 	{
 		base.OnMouseDown( e );
+		if ( !IsInsideCanvas( e.LocalPosition ) )
+			return;
+
 		isPainting = true;
 		lastPaintPosition = e.LocalPosition;
 		StampDot( e.LocalPosition );
@@ -97,6 +100,13 @@ public sealed class PaintCanvas : Panel
 
 		if ( !isPainting )
 			return;
+
+		if ( !IsInsideCanvas( e.LocalPosition ) )
+		{
+			isPainting = false;
+			lastPaintPosition = null;
+			return;
+		}
 
 		foreach ( var point in ComputerPaintStrokePolicy.BuildStampPositions( lastPaintPosition, e.LocalPosition, MathF.Max( 2f, BrushSize * 0.35f ) ) )
 		{
@@ -120,6 +130,9 @@ public sealed class PaintCanvas : Panel
 
 	private void StampDot( Vector2 position )
 	{
+		if ( !IsInsideCanvas( position ) )
+			return;
+
 		var dot = new Panel { Parent = this };
 		dot.AddClass( "paint-dot" );
 		var radius = BrushSize * 0.5f;
@@ -128,5 +141,14 @@ public sealed class PaintCanvas : Panel
 		dot.Style.Width = Length.Pixels( BrushSize );
 		dot.Style.Height = Length.Pixels( BrushSize );
 		dot.Style.BackgroundColor = Color.Parse( CurrentColor );
+	}
+
+	private bool IsInsideCanvas( Vector2 position )
+	{
+		var rect = Box.Rect;
+		return position.x >= 0f &&
+			position.y >= 0f &&
+			position.x <= rect.Width &&
+			position.y <= rect.Height;
 	}
 }

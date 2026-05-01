@@ -259,6 +259,7 @@
 	margin: 8px;
 	border: 1px solid #b5c2d8;
 	background: #ffffff;
+	overflow: hidden;
 }
 
 .paint-dot {
@@ -815,23 +816,26 @@
 }
 
 .explorer-toolbar {
-	height: 36px;
+	height: 34px;
 	flex-shrink: 0;
 	align-items: center;
-	gap: 6px;
-	padding: 4px 6px;
+	gap: 4px;
+	padding: 3px 5px;
 	background: linear-gradient(180deg, #f7f8fb, #dfe5f0);
 	border-bottom: 1px solid #b8c3d6;
 }
 
 .explorer-button {
-	height: 26px;
-	padding: 0 10px;
+	height: 25px;
+	min-width: 52px;
+	padding: 0 7px;
 	align-items: center;
 	justify-content: center;
 	border: 1px solid #8ea1bf;
 	background: linear-gradient(180deg, #ffffff, #dde6f5);
 	color: #1c3d73;
+	white-space: nowrap;
+	font-size: 11px;
 }
 
 .explorer-path {

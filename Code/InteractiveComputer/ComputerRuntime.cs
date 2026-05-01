@@ -234,6 +234,9 @@ public sealed class ComputerRuntime
 		if ( !runningApps.TryGetValue( instanceId, out var app ) || !app.Descriptor.HasWindow )
 			return;
 
+		if ( app.State.IsMinimized )
+			RefreshRunningAppSession( app );
+
 		app.State.IsMinimized = false;
 		app.State.ZIndex = ++nextZIndex;
 		State.FocusedInstanceId = instanceId;
@@ -859,6 +862,26 @@ public sealed class ComputerRuntime
 		return new ComputerRunningApp( descriptor, appState, session );
 	}
 
+	private void RefreshRunningAppSession( ComputerRunningApp app )
+	{
+		try
+		{
+			app.Session.Content.Delete();
+		}
+		catch ( Exception )
+		{
+		}
+
+		var installedApp = GetOrCreateInstalledAppState( app.Descriptor.Id );
+		var context = new ComputerAppContext( computer, this, installedApp, app.State );
+		var session = app.Descriptor.Create().Run( context );
+		if ( !string.IsNullOrWhiteSpace( session.Title ) )
+			app.State.Title = session.Title!;
+		if ( !string.IsNullOrWhiteSpace( session.Icon ) )
+			app.State.Icon = session.Icon!;
+		app.Session = session;
+	}
+
 	private ComputerInstalledAppState GetOrCreateInstalledAppState( string appId )
 	{
 		var installedApp = State.InstalledApps.FirstOrDefault( x => x.AppId == appId );
@@ -1251,5 +1274,5 @@ public sealed class ComputerRunningApp
 
 	public ComputerAppDescriptor Descriptor { get; }
 	public ComputerAppState State { get; }
-	public ComputerAppSession Session { get; }
+	public ComputerAppSession Session { get; internal set; }
 }

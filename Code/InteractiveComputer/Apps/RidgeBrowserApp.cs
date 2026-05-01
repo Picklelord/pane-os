@@ -55,7 +55,7 @@ public sealed class RidgeBrowserPanel : ComputerWarmupPanel
 		homeButton.AddClass( "ridge-button" );
 		homeButton.AddEventListener( "onclick", GoHome );
 
-		addressBar = new ComputerInputAwareTextEntry( () => context.Runtime.ShouldBlockInput( context.State.InstanceId ) )
+		addressBar = new ComputerInputAwareTextEntry( ShouldSuppressInput )
 		{
 			Parent = toolbar,
 			Text = currentUrl
@@ -149,6 +149,13 @@ public sealed class RidgeBrowserPanel : ComputerWarmupPanel
 			: $"Poodle sniffed out results for \"{query}\"";
 	}
 
+	private bool ShouldSuppressInput()
+	{
+		return context.Runtime.ShouldBlockInput( context.State.InstanceId ) ||
+			context.State.IsMinimized ||
+			context.Runtime.FocusedApp?.State.InstanceId != context.State.InstanceId;
+	}
+
 	private RidgePolicyResult ResolvePageState( string url )
 	{
 		var normalized = RidgeBrowserPolicy.NormalizeUrl( string.IsNullOrWhiteSpace( url ) ? "paneos://default" : url );
@@ -211,7 +218,7 @@ public sealed class PoodleSearchPanel : ComputerWarmupPanel
 		var searchRow = new Panel { Parent = this };
 		searchRow.AddClass( "poodle-search-row" );
 
-		searchEntry = new ComputerInputAwareTextEntry( () => context.Runtime.ShouldBlockInput( context.State.InstanceId ) )
+		searchEntry = new ComputerInputAwareTextEntry( ShouldSuppressInput )
 		{
 			Parent = searchRow,
 			Text = currentQuery,
@@ -234,6 +241,13 @@ public sealed class PoodleSearchPanel : ComputerWarmupPanel
 		context.SaveValue( "poodle_query", searchEntry.Text );
 		onSearch( searchEntry.Text );
 		RenderResults();
+	}
+
+	private bool ShouldSuppressInput()
+	{
+		return context.Runtime.ShouldBlockInput( context.State.InstanceId ) ||
+			context.State.IsMinimized ||
+			context.Runtime.FocusedApp?.State.InstanceId != context.State.InstanceId;
 	}
 
 	private void RenderResults()

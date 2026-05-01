@@ -1,0 +1,40 @@
+@namespace PaneOS.InteractiveComputer
+@using System
+@using Microsoft.AspNetCore.Components
+@using PaneOS.InteractiveComputer
+@using Sandbox.UI
+@inherits TextEntry
+
+@code
+{
+	[Parameter] public ComputerActiveFileDialog? FileDialog { get; set; }
+	private Guid boundId;
+
+	protected override void OnAfterTreeRender( bool firstTime )
+	{
+		base.OnAfterTreeRender( firstTime );
+		AddClass( "message-box-input" );
+
+		if ( FileDialog is null )
+			return;
+
+		if ( boundId != FileDialog.Id )
+		{
+			boundId = FileDialog.Id;
+			Text = FileDialog.CurrentFileName;
+			CaretPosition = TextLength;
+			Focus();
+		}
+	}
+
+	public override void Tick()
+	{
+		base.Tick();
+
+		if ( FileDialog is null )
+			return;
+
+		if ( FileDialog.CurrentFileName != Text )
+			FileDialog.CurrentFileName = Text;
+	}
+}

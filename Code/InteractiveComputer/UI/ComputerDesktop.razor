@@ -75,6 +75,8 @@
 						<div class="desktop-shortcut @(selectedDesktopShortcutIds.Contains( shortcut.Id ) ? "selected" : "")"
 							 style="@GetShortcutStyle( shortcut.Index )"
 							 onclick="@(() => SelectDesktopShortcut( shortcut.Id ))"
+							 @onclick:stopPropagation="true"
+							 @onmousedown:stopPropagation="true"
 							 ondblclick="@(() => ActivateDesktopShortcut( shortcut.Id ))"
 							 oncontextmenu="@(() => OpenDesktopContextMenu( shortcut.Id ))">
 							<div class="desktop-icon">@shortcut.Icon</div>
@@ -108,31 +110,41 @@
 
 				@foreach ( var app in Runtime.OpenApps )
 				{
-					if ( !app.Descriptor.HasWindow )
+					if ( !app.Descriptor.HasWindow || app.State.IsMinimized )
 						continue;
 
 					<div @key="app.State.InstanceId"
 						 class="xp-window @(app.State.IsMinimized ? "minimized" : "") @(Runtime.FocusedApp == app ? "focused" : "") @(Runtime.GetEffectiveStatus( app.State.InstanceId ) == ComputerProcessStatus.NotResponding ? "not-responding" : "")"
 						 style="left: @(app.State.X)px; top: @(app.State.Y)px; width: @(app.State.Width)px; height: @(app.State.Height)px; z-index: @(app.State.ZIndex);"
-						 onclick="@(() => Focus( app.State.InstanceId ))">
-						<div class="title-bar">
+						 onclick="@(() => Focus( app.State.InstanceId ))"
+						 @onmousedown:stopPropagation="true">
+						<div class="title-bar"
+							 @onmousedown="@((MousePanelEvent e) => StartWindowDrag( app.State.InstanceId, e ))"
+							 @onmousedown:stopPropagation="true">
 							<div class="title-text">
 								<span>@app.State.Icon</span>
 								<label>@app.State.Title</label>
 							</div>
-							<div class="window-controls">
+							<div class="window-controls"
+								 @onclick:stopPropagation="true"
+								 @onmousedown:stopPropagation="true">
 								@if ( app.Session.CanMinimize )
 								{
-									<button onclick="@(() => Minimize( app.State.InstanceId ))">_</button>
+									<button onclick="@(() => Minimize( app.State.InstanceId ))"
+											@onclick:stopPropagation="true">_</button>
 								}
 								@if ( app.Session.CanClose )
 								{
-									<button class="close" onclick="@(() => Close( app.State.InstanceId ))">x</button>
+									<button class="close"
+											onclick="@(() => Close( app.State.InstanceId ))"
+											@onclick:stopPropagation="true">x</button>
 								}
 							</div>
 						</div>
 						<ComputerAppHost @key="app.State.InstanceId" Instance=@app />
-						<div class="window-resize-grip"></div>
+						<div class="window-resize-grip"
+							 @onmousedown="@((MousePanelEvent e) => StartWindowResize( app.State.InstanceId, e ))"
+							 @onmousedown:stopPropagation="true"></div>
 						@if ( Runtime.ShouldBlockInput( app.State.InstanceId ) )
 						{
 							<div class="window-input-overlay">
@@ -236,13 +248,7 @@
 							<label>@messageBox.Options.Message</label>
 							@if ( messageBox.Options.HasTextInput )
 							{
-								<input class="message-box-input"
-									   autofocus="autofocus"
-									   @bind="Runtime.ActiveMessageBox.CurrentText"
-									   @bind:event="oninput"
-									   @onclick:stopPropagation="true"
-									   @onmousedown:stopPropagation="true"
-									   placeholder="@messageBox.Options.TextInputPlaceholder" />
+								<ComputerMessageBoxTextEntry MessageBox=@messageBox />
 							}
 						</div>
 					</div>
@@ -286,12 +292,7 @@
 					{
 						<div class="file-dialog-name-row">
 							<label>File name</label>
-							<input class="message-box-input"
-								   autofocus="autofocus"
-								   @bind="Runtime.ActiveFileDialog.CurrentFileName"
-								   @bind:event="oninput"
-								   @onclick:stopPropagation="true"
-								   @onmousedown:stopPropagation="true" />
+							<ComputerFileDialogTextEntry FileDialog=@fileDialog />
 						</div>
 					}
 					<div class="message-box-actions">
@@ -436,6 +437,40 @@
 		StateHasChanged();
 	}
 
+	private void StartWindowDrag( string instanceId, MousePanelEvent e )
+	{
+		if ( Runtime is null )
+			return;
+
+		var app = Runtime.OpenApps.FirstOrDefault( x => x.State.InstanceId == instanceId );
+		if ( app is null )
+			return;
+
+		Runtime.Focus( instanceId );
+		var localMousePosition = GetLocalMousePosition( e );
+		draggingWindowId = instanceId;
+		draggingWindowOffset = localMousePosition - new Vector2( app.State.X, app.State.Y );
+		StateHasChanged();
+		e.StopPropagation();
+	}
+
+	private void StartWindowResize( string instanceId, MousePanelEvent e )
+	{
+		if ( Runtime is null )
+			return;
+
+		var app = Runtime.OpenApps.FirstOrDefault( x => x.State.InstanceId == instanceId );
+		if ( app is null )
+			return;
+
+		Runtime.Focus( instanceId );
+		resizingWindowId = instanceId;
+		resizingStartMouse = GetLocalMousePosition( e );
+		resizingStartSize = new Vector2( app.State.Width, app.State.Height );
+		StateHasChanged();
+		e.StopPropagation();
+	}
+
 	private void Sleep()
 	{
 		Runtime?.Sleep();
@@ -519,46 +554,6 @@
 		base.OnMouseDown( e );
 
 		if ( !ShouldShowDesktop || Runtime is null || Runtime.State.IsSleeping || Runtime.State.IsLocked || Runtime.IsRestarting || Runtime.ActiveMessageBox is not null )
-			return;
-
-		var localMousePosition = GetLocalMousePosition( e );
-		var topWindow = FindTopWindowAt( localMousePosition );
-		if ( topWindow is not null )
-		{
-			Runtime.Focus( topWindow.State.InstanceId );
-
-			if ( IsInsideWindowControls( topWindow, localMousePosition ) )
-			{
-				StateHasChanged();
-				e.StopPropagation();
-				return;
-			}
-
-			if ( IsInsideResizeGrip( topWindow, localMousePosition ) )
-			{
-				resizingWindowId = topWindow.State.InstanceId;
-				resizingStartMouse = localMousePosition;
-				resizingStartSize = new Vector2( topWindow.State.Width, topWindow.State.Height );
-				StateHasChanged();
-				e.StopPropagation();
-				return;
-			}
-
-			if ( IsInsideWindowTitleBar( topWindow, localMousePosition ) )
-			{
-				draggingWindowId = topWindow.State.InstanceId;
-				draggingWindowOffset = localMousePosition - new Vector2( topWindow.State.X, topWindow.State.Y );
-				StateHasChanged();
-				e.StopPropagation();
-				return;
-			}
-
-			StateHasChanged();
-			e.StopPropagation();
-			return;
-		}
-
-		if ( TryGetDesktopShortcutAt( localMousePosition, out _ ) )
 			return;
 
 		HideDesktopContextMenu();
@@ -680,25 +675,10 @@
 			var screenPosition = e.Target is not null
 				? e.Target.PanelPositionToScreenPosition( e.LocalPosition )
 				: e.LocalPosition;
-			return NormalizeMouseToDesktopSpace( desktopSurface.ScreenPositionToPanelPosition( screenPosition ) );
+			return desktopSurface.ScreenPositionToPanelPosition( screenPosition );
 		}
 
-		return NormalizeMouseToDesktopSpace( desktopSurface?.MousePosition ?? Panel?.MousePosition ?? Vector2.Zero );
-	}
-
-	private Vector2 NormalizeMouseToDesktopSpace( Vector2 panelLocalPosition )
-	{
-		var desktopSurface = GetDesktopSurfacePanel();
-		if ( Runtime is null || desktopSurface is null )
-			return panelLocalPosition;
-
-		var rect = desktopSurface.Box.Rect;
-		var width = MathF.Max( 1f, rect.Width );
-		var height = MathF.Max( 1f, rect.Height );
-
-		return new Vector2(
-			panelLocalPosition.x * Runtime.State.ResolutionX / width,
-			panelLocalPosition.y * Runtime.State.ResolutionY / height );
+		return desktopSurface?.MousePosition ?? Panel?.MousePosition ?? Vector2.Zero;
 	}
 
 	private Panel? GetDesktopSurfacePanel()

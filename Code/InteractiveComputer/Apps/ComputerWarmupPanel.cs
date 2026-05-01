@@ -24,4 +24,9 @@ public abstract class ComputerWarmupPanel : Panel
 	protected virtual void WarmupRefresh()
 	{
 	}
+
+	protected void RequestWarmupRefresh()
+	{
+		warmupRefreshPasses = 0;
+	}
 }

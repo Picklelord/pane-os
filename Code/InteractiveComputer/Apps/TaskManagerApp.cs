@@ -74,6 +74,7 @@ public sealed class TaskManagerPanel : ComputerWarmupPanel
 		button.AddEventListener( "onclick", () =>
 		{
 			activeTab = tab;
+			RequestWarmupRefresh();
 			RenderActiveTab( true );
 		} );
 		return button;
